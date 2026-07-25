@@ -5,3 +5,4 @@ __pycache__/
 card.png
 *.egg-info/
 dist/
+node_modules/

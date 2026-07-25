@@ -1,0 +1,11 @@
+{
+  "name": "satori-card-generator",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "satori": "^0.12",
+    "@resvg/resvg-js": "^2",
+    "qrcode": "^1",
+    "yoga-wasm-web": "^0.3"
+  }
+}

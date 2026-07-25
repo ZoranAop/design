@@ -106,7 +106,7 @@ QR_SIZE = 180
 #  FONT HELPERS
 # ================================================================
 
-_FONT_CACHE = {}
+_font_cache = {}
 
 
 def _resolve_font(size, prefer_bold=False):

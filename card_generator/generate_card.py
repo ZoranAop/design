@@ -5,15 +5,10 @@
 ============================================================
 
 Generates a visually polished share card with QR code.
-Inputs: website URL, model name, reference UI screenshot.
-Output: a designer-grade .png card ready for distribution.
-
-Design philosophy (inspired by canvas-design):
-  Each card is treated as a curated visual artifact, not a
-  utilitarian layout. Composition, color, typography, and
-  spatial balance are given the same weight as information
-  delivery. The result should feel meticulously crafted —
-  the product of deep expertise and painstaking attention.
+Design philosophy: magazine-editorial quality. Every element
+is placed with painstaking attention to spacing, balance,
+and visual rhythm. The result should feel like a curated
+artifact — not a utility layout.
 
 Usage:
     python generate_card.py --url https://example.com --name "My Model" --image ui.png
@@ -23,84 +18,77 @@ Usage:
 import argparse
 import os
 import sys
-
 import qrcode
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageColor
 
 # ================================================================
-#  DESIGN THEMES (inspired by canvas-design visual philosophies)
-#  Each theme defines a palette, a mood, and layout proportions.
+#  DESIGN THEMES
 # ================================================================
 
 THEMES = {
     "minimal": {
         "name": "Geometric Silence",
-        "description": "Pure order and restraint. Swiss formalism with generous negative space.",
-        "bg": (250, 249, 245),          # warm off-white
-        "text_primary": (20, 20, 19),   # near-black
-        "text_secondary": (145, 140, 130),
-        "accent": (140, 156, 118),      # muted green
-        "accent_alt": (176, 174, 165),   # mid gray
+        "canvas_bg": (242, 241, 238),
+        "card_bg": (255, 255, 255),
+        "text_primary": (20, 20, 19),
+        "text_secondary": (130, 125, 115),
+        "accent": (140, 156, 118),
+        "accent_alt": (176, 174, 165),
         "divider": (232, 230, 220),
-        "card_padding": 48,
-        "ui_border_radius": 12,
-        "qr_padding": 16,
-        "font_ratio": {"heading": 1.0, "body": 0.55, "caption": 0.36},
+        "shadow_color": (0, 0, 0, 40),
+        "ui_radius": 16,
+        "qr_radius": 14,
     },
     "tech": {
         "name": "Chromatic Systems",
-        "description": "Digital precision meets data-visualization aesthetics.",
-        "bg": (13, 17, 23),             # deep dark
-        "text_primary": (230, 237, 243),
-        "text_secondary": (139, 148, 158),
-        "accent": (88, 166, 255),       # electric blue
-        "accent_alt": (63, 185, 80),     # signal green
-        "divider": (48, 54, 61),
-        "card_padding": 40,
-        "ui_border_radius": 8,
-        "qr_padding": 12,
-        "font_ratio": {"heading": 1.0, "body": 0.53, "caption": 0.35},
+        "canvas_bg": (10, 12, 20),
+        "card_bg": (20, 24, 35),
+        "text_primary": (235, 240, 248),
+        "text_secondary": (120, 130, 150),
+        "accent": (88, 166, 255),
+        "accent_alt": (63, 185, 80),
+        "divider": (40, 46, 58),
+        "shadow_color": (0, 0, 0, 80),
+        "ui_radius": 12,
+        "qr_radius": 12,
     },
     "organic": {
         "name": "Natural Clustering",
-        "description": "Warm, rounded forms with color drawn from earth and architecture.",
-        "bg": (248, 244, 235),          # cream
-        "text_primary": (58, 46, 35),
-        "text_secondary": (141, 121, 98),
-        "accent": (217, 119, 87),       # terracotta
-        "accent_alt": (120, 140, 93),    # olive
-        "divider": (225, 216, 200),
-        "card_padding": 44,
-        "ui_border_radius": 16,
-        "qr_padding": 14,
-        "font_ratio": {"heading": 1.0, "body": 0.56, "caption": 0.37},
+        "canvas_bg": (242, 236, 225),
+        "card_bg": (255, 252, 245),
+        "text_primary": (50, 40, 30),
+        "text_secondary": (140, 115, 90),
+        "accent": (217, 119, 87),
+        "accent_alt": (120, 140, 93),
+        "divider": (230, 220, 205),
+        "shadow_color": (60, 40, 20, 30),
+        "ui_radius": 20,
+        "qr_radius": 16,
     },
     "bold": {
         "name": "Concrete Poetry",
-        "description": "Monumental form and bold geometry. Polish poster energy.",
-        "bg": (20, 20, 19),             # deep black
-        "text_primary": (250, 249, 245),
-        "text_secondary": (176, 174, 165),
-        "accent": (217, 119, 87),       # burnt orange
-        "accent_alt": (106, 155, 204),   # slate blue
-        "divider": (58, 56, 52),
-        "card_padding": 36,
-        "ui_border_radius": 4,
-        "qr_padding": 10,
-        "font_ratio": {"heading": 1.0, "body": 0.52, "caption": 0.34},
+        "canvas_bg": (14, 14, 14),
+        "card_bg": (24, 24, 24),
+        "text_primary": (252, 250, 245),
+        "text_secondary": (180, 175, 165),
+        "accent": (230, 125, 80),
+        "accent_alt": (106, 155, 204),
+        "divider": (50, 48, 45),
+        "shadow_color": (0, 0, 0, 100),
+        "ui_radius": 8,
+        "qr_radius": 8,
     },
 }
 
-# ================================================================
-#  CARD CONFIGURATION
-# ================================================================
+CANVAS_W, CANVAS_H = 1200, 630
+CARD_MARGIN = 28
+CARD_RADIUS = 20
+CARD_PAD = 48
+UI_MAX_W, UI_MAX_H = 520, 340
+QR_SIZE = 140
+SHADOW_BLUR = 20
+SHADOW_OFFSET = (4, 8)
 
-CARD_WIDTH = 1000
-CARD_HEIGHT = 620
-
-UI_MAX_WIDTH = 420
-UI_MAX_HEIGHT = 300
-QR_SIZE = 180
 
 # ================================================================
 #  FONT HELPERS
@@ -110,24 +98,14 @@ _font_cache = {}
 
 
 def _resolve_font(size, prefer_bold=False):
-    """Resolve the best available font at *size* px."""
     key = (size, prefer_bold)
     if key in _font_cache:
         return _font_cache[key]
 
-    candidates = []
     if prefer_bold:
-        candidates = [
-            "segoeuib.ttf", "seguisb.ttf",
-            "msyhbd.ttf", "simhei.ttf",
-            "arialbd.ttf", "arial.ttf",
-        ]
+        candidates = ["segoeuib.ttf", "seguisb.ttf", "msyhbd.ttf", "simhei.ttf", "arialbd.ttf", "arial.ttf"]
     else:
-        candidates = [
-            "segoeui.ttf", "segoe.ttf",
-            "msyh.ttc", "msyh.ttf",
-            "simhei.ttf", "arial.ttf",
-        ]
+        candidates = ["segoeui.ttf", "segoe.ttf", "msyh.ttc", "msyh.ttf", "simhei.ttf", "arial.ttf"]
 
     for name in candidates:
         for root in [os.environ.get("WINDIR", r"C:\Windows") + r"\Fonts", ""]:
@@ -144,103 +122,72 @@ def _resolve_font(size, prefer_bold=False):
     return font
 
 
-def _hex_to_rgb(hex_str):
-    hex_str = hex_str.lstrip("#")
-    return tuple(int(hex_str[i:i + 2], 16) for i in (0, 2, 4))
+def _hex_to_rgb(s):
+    s = s.lstrip("#")
+    return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
 
 
 # ================================================================
-#  DRAWING PRIMITIVES (design-aware)
+#  DRAWING PRIMITIVES
 # ================================================================
 
 
-def _rounded_rectangle_mask(size, radius):
-    """Return an alpha mask for a rounded rectangle."""
+def _rounded_mask(size, radius):
     w, h = size
     mask = Image.new("L", (w, h), 0)
-    draw = ImageDraw.Draw(mask)
-    draw.rounded_rectangle([(0, 0), (w - 1, h - 1)], radius=radius, fill=255)
+    ImageDraw.Draw(mask).rounded_rectangle([(0, 0), (w - 1, h - 1)], radius=radius, fill=255)
     return mask
 
 
-def _draw_geometric_elements(draw, theme, card_w, card_h):
-    """Add subtle geometric accents that elevate the design."""
-    t = theme
+def _draw_shadow(card_img, radius, shadow_color, shadow_offset, shadow_blur):
+    cw, ch = card_img.size
+    pad = shadow_blur * 2
+    sw, sh = cw + pad, ch + pad
+    shadow = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(shadow)
+    sd.rounded_rectangle(
+        [(shadow_blur + shadow_offset[0], shadow_blur + shadow_offset[1]),
+         (cw + shadow_blur + shadow_offset[0] - 1, ch + shadow_blur + shadow_offset[1] - 1)],
+        radius=radius,
+        fill=shadow_color,
+    )
+    shadow = shadow.filter(ImageFilter.GaussianBlur(radius=shadow_blur))
 
-    if theme["name"] == "Geometric Silence":
-        accent_y = int(card_h * 0.15)
-        draw.rectangle(
-            [0, accent_y, card_w, accent_y + 2], fill=t["divider"]
-        )
-        draw.rectangle(
-            [t["card_padding"], card_h - t["card_padding"], t["card_padding"] + 32, card_h - t["card_padding"] + 2],
-            fill=t["accent"],
-        )
-
-    elif theme["name"] == "Chromatic Systems":
-        for i in range(6):
-            x = t["card_padding"] + i * 12
-            y = card_h - t["card_padding"]
-            draw.rectangle([x, y - 2, x + 8, y], fill=t["accent"])
-
-    elif theme["name"] == "Natural Clustering":
-        cx, cy = t["card_padding"] - 10, card_h - t["card_padding"] + 10
-        for r in range(20, 61, 20):
-            draw.arc(
-                [(cx - r, cy - r), (cx + r, cy + r)],
-                start=180, end=270,
-                fill=t["accent"], width=2,
-            )
-
-    elif theme["name"] == "Concrete Poetry":
-        bar_y = int(card_h * 0.08)
-        draw.rectangle([0, bar_y, card_w, bar_y + 6], fill=t["accent"])
-        accent_x = int(card_w * 0.72)
-        draw.rectangle(
-            [accent_x, t["card_padding"], accent_x + 4, t["card_padding"] + 90],
-            fill=t["accent_alt"],
-        )
+    canvas = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
+    canvas.paste(shadow, (0, 0), shadow)
+    canvas.paste(card_img.convert("RGBA"), (shadow_blur, shadow_blur), card_img)
+    return canvas
 
 
-# ================================================================
-#  LAYOUT ENGINE
-# ================================================================
+def _make_qr_block(url, size, theme):
+    qr = qrcode.QRCode(box_size=4, border=2)
+    qr.add_data(url)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
+    qr_img = qr_img.resize((size, size), Image.Resampling.LANCZOS)
+
+    pad = 12
+    outer = size + pad * 2
+    block = Image.new("RGBA", (outer + 60, outer + 20), (0, 0, 0, 0))  # +60 for text, +20 for accent bar
+    bd = ImageDraw.Draw(block)
+
+    bd.rounded_rectangle(
+        [(0, 22), (outer - 1, outer + 22 - 1)],
+        radius=theme["qr_radius"],
+        fill=(255, 255, 255, 255),
+        outline=theme["accent"] + (255,),
+        width=2,
+    )
+    block.paste(qr_img, (pad, pad + 22), qr_img)
+
+    # Accent bar above QR
+    bd.rectangle([4, 0, 4 + 32, 3], fill=theme["accent"])
+
+    return block
 
 
-def _compute_layout(card_w, card_h, ui_w, ui_h, qr_size, padding):
-    """
-    Compute positions for every element so they sit comfortably
-    with balanced spacing.  Returns a dict of (x, y, w, h).
-    """
-    inner_w = card_w - 2 * padding
-    inner_h = card_h - 2 * padding
-    gap = 28
-
-    ui_area_x = padding
-    ui_area_y = padding
-
-    qr_area_x = card_w - padding - qr_size
-    qr_area_y = card_h - padding - qr_size
-
-    text_x = padding + ui_w + gap
-    text_y = padding
-    text_max_w = qr_area_x - text_x - gap
-    return {
-        "ui": {"x": ui_area_x, "y": ui_area_y, "w": ui_w, "h": ui_h},
-        "qr": {"x": qr_area_x, "y": qr_area_y, "w": qr_size, "h": qr_size},
-        "text": {"x": text_x, "y": text_y, "w": text_max_w, "h": inner_h},
-        "inner": {"w": inner_w, "h": inner_h},
-        "padding": padding,
-        "gap": gap,
-    }
-
-
-def _text_block_height(draw, lines, font, line_spacing):
-    h = 0
-    for line in lines:
-        bbox = draw.textbbox((0, 0), line, font=font)
-        h += bbox[3] - bbox[1] + line_spacing
-    return h
+def _draw_accent_dot(draw, x, y, color, r=3):
+    draw.ellipse([(x - r, y - r), (x + r, y + r)], fill=color)
 
 
 # ================================================================
@@ -248,174 +195,228 @@ def _text_block_height(draw, lines, font, line_spacing):
 # ================================================================
 
 
-def generate_card(
-    url,
-    model_name,
-    ui_image_path,
-    output_path="card.png",
-    theme_name="minimal",
-    subtitle="",
-    accent_color_hex=None,
-):
-    theme = THEMES.get(theme_name, THEMES["minimal"])
-    padding = theme["card_padding"]
-    card_w, card_h = CARD_WIDTH, CARD_HEIGHT
+def generate_card(url, name, image_path, output_path, theme="minimal", subtitle=""):
+    t = THEMES[theme]
+    cw, ch = CANVAS_W, CANVAS_H
 
-    if accent_color_hex:
-        theme["accent"] = _hex_to_rgb(accent_color_hex)
+    # === Canvas background ===
+    canvas = Image.new("RGB", (cw, ch), t["canvas_bg"])
+    draw = ImageDraw.Draw(canvas)
 
-    # --- 1. Create canvas ---
-    card = Image.new("RGB", (card_w, card_h), theme["bg"])
-    draw = ImageDraw.Draw(card)
+    # === The card (centered white block) ===
+    card_margin = CARD_MARGIN
+    card_x, card_y = card_margin, card_margin
+    card_w = cw - card_margin * 2
+    card_h = ch - card_margin * 2
 
-    # --- 2. Load & process UI image ---
-    try:
-        ui_img = Image.open(ui_image_path).convert("RGB")
-    except Exception as e:
-        print(f"[ERROR] Cannot read UI image: {e}")
-        sys.exit(1)
+    card = Image.new("RGBA", (card_w, card_h), (0, 0, 0, 0))
+    cd = ImageDraw.Draw(card)
 
-    orig_w, orig_h = ui_img.size
-    ratio = min(UI_MAX_WIDTH / orig_w, UI_MAX_HEIGHT / orig_h, 1.0)
-    ui_w, ui_h = int(orig_w * ratio), int(orig_h * ratio)
-    ui_img = ui_img.resize((ui_w, ui_h), Image.Resampling.LANCZOS)
+    # Card background with rounded corners
+    cd.rounded_rectangle(
+        [(0, 0), (card_w - 1, card_h - 1)],
+        radius=CARD_RADIUS,
+        fill=t["card_bg"],
+    )
 
-    # Rounded corners for UI screenshot
-    radius = theme["ui_border_radius"]
-    mask = _rounded_rectangle_mask((ui_w, ui_h), radius)
-    ui_rounded = Image.new("RGBA", (ui_w, ui_h), (0, 0, 0, 0))
+    # === Card interior layout ===
+    pad = CARD_PAD
+    left_x = pad
+    left_w = UI_MAX_W
+    left_h = card_h - pad * 2
+
+    # Gap between left (UI) and right (text + QR)
+    gap = 48
+    right_x = left_x + left_w + gap
+    right_w = card_w - right_x - pad
+
+    # === UI Screenshot ===
+    ui_img = Image.open(image_path).convert("RGB")
+    ow, oh = ui_img.size
+    scale = min(UI_MAX_W / ow, UI_MAX_H / oh, 1.0)
+    uw, uh = int(ow * scale), int(oh * scale)
+    ui_img = ui_img.resize((uw, uh), Image.Resampling.LANCZOS)
+
+    # Centered vertically in left column
+    ui_y = pad + (left_h - uh) // 2
+
+    # Rounded + shadow
+    mask = _rounded_mask((uw, uh), t["ui_radius"])
+    ui_rounded = Image.new("RGBA", (uw, uh), (0, 0, 0, 0))
     ui_rounded.paste(ui_img, (0, 0))
     ui_rounded.putalpha(mask)
 
-    # Shadow behind UI
-    shadow_offset = 6
-    shadow = Image.new("RGBA", (ui_w + shadow_offset * 2, ui_h + shadow_offset * 2), (0, 0, 0, 0))
-    shadow_draw = ImageDraw.Draw(shadow)
-    shadow_draw.rounded_rectangle(
-        [(shadow_offset, shadow_offset), (ui_w + shadow_offset - 1, ui_h + shadow_offset - 1)],
-        radius=radius,
-        fill=(0, 0, 0, 28),
+    # Small shadow under UI
+    ushadow = Image.new("RGBA", (uw + 20, uh + 20), (0, 0, 0, 30))
+    ushadow = ushadow.filter(ImageFilter.GaussianBlur(radius=10))
+    card.paste(ushadow, (left_x - 4, ui_y + 4), ushadow)
+    card.paste(ui_rounded, (left_x, ui_y), ui_rounded)
+
+    # Thin border around UI
+    cd.rounded_rectangle(
+        [(left_x - 1, ui_y - 1), (left_x + uw, ui_y + uh)],
+        radius=t["ui_radius"],
+        outline=t["divider"],
+        width=1,
     )
-    shadow = shadow.filter(ImageFilter.GaussianBlur(radius=6))
 
-    # --- 3. Compute layout ---
-    layout = _compute_layout(card_w, card_h, ui_w, ui_h, QR_SIZE, padding)
+    # === QR block ===
+    qr_block = _make_qr_block(url, QR_SIZE, t)
+    qr_bw, qr_bh = qr_block.size
 
-    # --- 4. Paste UI with shadow ---
-    u = layout["ui"]
-    card.paste(shadow, (u["x"] - shadow_offset, u["y"] - shadow_offset), shadow)
-    card.paste(ui_rounded, (u["x"], u["y"]), ui_rounded)
+    # === Typography (right column) ===
+    # Vertical centering of text + QR
+    heading_font = _resolve_font(48, prefer_bold=True)
+    body_font = _resolve_font(22)
+    caption_font = _resolve_font(16)
 
-    # --- 5. Generate QR code ---
-    qr = qrcode.QRCode(box_size=4, border=2)
-    qr.add_data(url)
-    qr.make(fit=True)
-    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
-    qr_img = qr_img.resize((QR_SIZE, QR_SIZE), Image.Resampling.LANCZOS)
+    display_url = url.replace("https://", "").replace("http://", "").rstrip("/")
 
-    # QR with rounded corners and accent border
-    qp = theme["qr_padding"]
-    qr_outer = QR_SIZE + qp * 2
-    qr_frame = Image.new("RGBA", (qr_outer, qr_outer), (0, 0, 0, 0))
-    qr_frame_draw = ImageDraw.Draw(qr_frame)
-    qr_frame_draw.rounded_rectangle(
-        [(0, 0), (qr_outer - 1, qr_outer - 1)],
-        radius=16, fill=(255, 255, 255, 255),
-        outline=theme["accent"] + (255,), width=3,
-    )
-    qr_frame.paste(qr_img, (qp, qp), qr_img)
+    # Measure text block height
+    lines_info = []
 
-    q = layout["qr"]
-    card.paste(qr_frame, (q["x"] - qp, q["y"] - qp), qr_frame)
+    # Model name (may need wrapping)
+    name_lines = []
+    remaining = name
+    while remaining:
+        for cut in range(len(remaining), 0, -1):
+            w = draw.textlength(remaining[:cut], font=heading_font)
+            if w <= right_w:
+                name_lines.append(remaining[:cut])
+                remaining = remaining[cut:]
+                break
+        else:
+            name_lines.append(remaining)
+            break
 
-    # --- 6. Typography ---
-    ratio = theme["font_ratio"]
-    font_heading = _resolve_font(36, prefer_bold=True)
-    font_body = _resolve_font(int(36 * ratio["body"]))
-    font_caption = _resolve_font(int(36 * ratio["caption"]))
-    font_tag = _resolve_font(int(36 * ratio["body"]), prefer_bold=True)
-
-    tx, ty = layout["text"]["x"], layout["text"]["y"]
-    max_w = layout["text"]["w"]
-    max_h = layout["text"]["h"]
-    line_height = 18
-
-    current_y = ty + 10
-
-    # Tag badge
-    tag = theme["name"].upper()
-    tag_bbox = draw.textbbox((0, 0), tag, font=font_caption)
-    tag_w = tag_bbox[2] - tag_bbox[0] + 20
-    tag_h = tag_bbox[3] - tag_bbox[1] + 10
-    draw.rounded_rectangle(
-        [(tx, current_y), (tx + tag_w, current_y + tag_h)],
-        radius=6,
-        fill=theme["accent"],
-        outline=None,
-    )
-    draw.text((tx + 10, current_y + 5), tag, fill=theme["bg"], font=font_caption)
-    current_y += tag_h + 24
-
-    # Divider line after tag
-    draw.rectangle(
-        [tx, current_y, tx + min(max_w, 60), current_y + 2],
-        fill=theme["accent"],
-    )
-    current_y += 20
-
-    # Model name
-    draw.text((tx, current_y), model_name, fill=theme["text_primary"], font=font_heading)
-    name_bbox = draw.textbbox((0, 0), model_name, font=font_heading)
-    current_y += (name_bbox[3] - name_bbox[1]) + 12
+    for ln in name_lines:
+        lines_info.append(("heading", ln, heading_font))
 
     # Subtitle
     if subtitle:
-        draw.text((tx, current_y), subtitle, fill=theme["text_secondary"], font=font_body)
-        sub_bbox = draw.textbbox((0, 0), subtitle, font=font_body)
-        current_y += (sub_bbox[3] - sub_bbox[1]) + 30
-    else:
-        current_y += 14
+        lines_info.append(("gap_small", "", None))
+        lines_info.append(("body", subtitle, body_font))
 
-    # URL label
-    url_label = "Scan to visit"
-    draw.text((tx, current_y), url_label, fill=theme["text_secondary"], font=font_caption)
-    current_y += 30
+    # Gap before URL section
+    lines_info.append(("gap_big", "", None))
 
-    # URL text
-    display_url = url.replace("https://", "").replace("http://", "").rstrip("/")
-    url_lines = []
-    url_font = font_caption
-    while display_url:
-        for cut in reversed(range(1, min(len(display_url) + 1, 48))):
-            bbox = draw.textbbox((0, 0), display_url[:cut], font=url_font)
-            if bbox[2] - bbox[0] <= max_w:
-                url_lines.append(display_url[:cut])
-                display_url = display_url[cut:]
+    # "Scan to visit" label
+    lines_info.append(("caption", "扫码访问", caption_font))
+
+    # URL display
+    url_parts = []
+    display_url_copy = display_url
+    while display_url_copy:
+        for cut in range(min(len(display_url_copy), 40), 0, -1):
+            w = draw.textlength(display_url_copy[:cut], font=caption_font)
+            if w <= right_w - 10:
+                url_parts.append(display_url_copy[:cut])
+                display_url_copy = display_url_copy[cut:]
                 break
         else:
-            url_lines.append(display_url[:40])
-            display_url = display_url[40:]
+            url_parts.append(display_url_copy[:40])
+            display_url_copy = display_url_copy[40:]
+    for up in url_parts[:2]:
+        lines_info.append(("url", up, caption_font))
 
-    for ul in url_lines[:2]:
-        draw.text((tx, current_y), ul, fill=theme["accent"], font=url_font)
-        current_y += 26
+    # QR block
+    lines_info.append(("qr_gap", "", None))
+    lines_info.append(("qr", "", None))
 
-    # Bottom URL hint
-    url_hint = url
-    hint_font = _resolve_font(14)
-    draw.text(
-        (padding, card_h - padding - 18),
-        url_hint,
-        fill=theme["text_secondary"],
-        font=hint_font,
+    # Compute total text height
+    text_h = 0
+    for kind, _, font in lines_info:
+        if kind in ("gap_small",):
+            text_h += 12
+        elif kind in ("gap_big",):
+            text_h += 24
+        elif kind in ("qr_gap",):
+            text_h += 16
+        elif kind == "qr":
+            text_h += qr_bh
+        elif kind == "caption":
+            text_h += 26
+        elif kind == "url":
+            text_h += 24
+        elif kind == "body":
+            text_h += 30
+        elif kind == "heading":
+            text_h += 56
+    text_h -= 8  # last line compensation
+
+    # Compute starting Y for vertical centering
+    section_y = pad + (left_h - text_h) // 2
+
+    # Draw text
+    draw_y = section_y
+    for kind, content, font in lines_info:
+        if kind == "heading":
+            card_draw = cd
+            draw_draw = draw
+            tx = right_x
+            color = t["text_primary"]
+            if font:
+                card_draw.text((tx, draw_y), content, fill=color, font=font)
+            draw_y += 56
+        elif kind == "body":
+            card_draw = cd
+            draw_draw = draw
+            if font:
+                card_draw.text((right_x, draw_y), content, fill=t["text_secondary"], font=font)
+            draw_y += 30
+        elif kind in ("caption",):
+            if font:
+                cd.text((right_x, draw_y), content, fill=t["text_secondary"], font=font)
+            draw_y += 26
+        elif kind == "url":
+            if font:
+                cd.text((right_x, draw_y), content, fill=t["accent"], font=font)
+            draw_y += 24
+        elif kind == "gap_small":
+            draw_y += 12
+        elif kind == "gap_big":
+            draw_y += 24
+        elif kind == "qr_gap":
+            draw_y += 16
+        elif kind == "qr":
+            qr_paste_x = right_x + (right_w - qr_bw) // 2
+            card.paste(qr_block, (qr_paste_x, draw_y - 2), qr_block)
+            draw_y += qr_bh
+
+    # === Subtle decorative elements on card ===
+    # Bottom-left corner accent
+    accent_x, accent_y_bot = pad, card_h - pad
+    cd.rectangle(
+        [(accent_x, accent_y_bot - 1), (accent_x + 40, accent_y_bot)],
+        fill=t["accent"],
     )
 
-    # --- 7. Geometric design elements ---
-    _draw_geometric_elements(draw, theme, card_w, card_h)
+    # Small dot accents scattered
+    _draw_accent_dot(cd, card_w - pad, pad, t["accent"], 4)
+    _draw_accent_dot(cd, card_w - pad - 18, pad, t["accent_alt"], 3)
 
-    # --- 8. Save ---
-    card.save(output_path, "PNG", dpi=(300, 300))
-    print(f"[OK] Card saved → {output_path}  (theme: {theme['name']})")
+    # === Shadow around card ===
+    card_with_shadow = _draw_shadow(
+        card, CARD_RADIUS, t["shadow_color"], SHADOW_OFFSET, SHADOW_BLUR
+    )
+
+    # === Paste card onto canvas ===
+    paste_x = card_x - SHADOW_BLUR
+    paste_y = card_y - SHADOW_BLUR
+    canvas_rgba = canvas.convert("RGBA")
+    canvas_rgba.paste(card_with_shadow, (paste_x, paste_y), card_with_shadow)
+
+    # === Canvas-level decorative elements ===
+    canvas_draw = ImageDraw.Draw(canvas_rgba)
+
+    # Thin rule at bottom of canvas
+    rule_y = ch - 1
+    canvas_draw.rectangle([card_margin, rule_y, cw - card_margin, rule_y + 1], fill=t["divider"])
+
+    # === Save ===
+    canvas_rgba = canvas_rgba.convert("RGB")
+    canvas_rgba.save(output_path, "PNG", dpi=(300, 300))
+    print(f"[OK] Card saved → {output_path}  (theme: {t['name']})")
 
 
 # ================================================================
@@ -430,9 +431,8 @@ def main():
         epilog="""
 Examples:
   python generate_card.py --url https://example.com --name "Awesome Model" --image ui.png
-  python generate_card.py --url https://example.com --name "Awesome Model" --image ui.png --theme tech
-  python generate_card.py --url https://example.com --name "Awesome Model" --image ui.png --theme organic --subtitle "A next-gen AI assistant"
-  python generate_card.py --url https://example.com --name "Awesome Model" --image ui.png --accent "#ff6b6b"
+  python generate_card.py --url https://example.com --name "Model" --image ui.png --theme tech
+  python generate_card.py --url https://example.com --name "Model" --image ui.png --theme organic --subtitle "Tagline here"
 
 Available themes: minimal (default), tech, organic, bold
         """,
@@ -440,15 +440,10 @@ Available themes: minimal (default), tech, organic, bold
     parser.add_argument("--url", required=True, help="Target URL (QR code destination)")
     parser.add_argument("--name", required=True, help="Model / product name")
     parser.add_argument("--image", required=True, help="Path to reference UI screenshot")
-    parser.add_argument("--output", default="card.png", help="Output image path (default: card.png)")
-    parser.add_argument(
-        "--theme",
-        choices=list(THEMES.keys()),
-        default="minimal",
-        help="Design theme (default: minimal)",
-    )
-    parser.add_argument("--subtitle", default="", help="Optional subtitle under model name")
-    parser.add_argument("--accent", default=None, help="Override accent color (hex, e.g. #ff6b6b)")
+    parser.add_argument("--output", default="card.png", help="Output image path")
+    parser.add_argument("--theme", choices=list(THEMES.keys()), default="minimal")
+    parser.add_argument("--subtitle", default="")
+    parser.add_argument("--accent", default=None, help="Override accent color (hex)")
 
     args = parser.parse_args()
 
@@ -456,14 +451,17 @@ Available themes: minimal (default), tech, organic, bold
         print(f"[ERROR] Image not found: {args.image}")
         sys.exit(1)
 
+    t = THEMES[args.theme]
+    if args.accent:
+        t["accent"] = _hex_to_rgb(args.accent)
+
     generate_card(
         url=args.url,
-        model_name=args.name,
-        ui_image_path=args.image,
+        name=args.name,
+        image_path=args.image,
         output_path=args.output,
-        theme_name=args.theme,
+        theme=args.theme,
         subtitle=args.subtitle,
-        accent_color_hex=args.accent,
     )
 
 

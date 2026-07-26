@@ -375,39 +375,34 @@ function multiCard({ name, subtitle, displayUrl, qrDataURI, models }) {
               { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginTop: "20px" } } },
 
               // --- Series hero ---
-              { type: "div", props: { style: { fontSize: "64px", fontWeight: 800, color: t.text, fontFamily: FF, lineHeight: 1.0, letterSpacing: "-2px", marginTop: "34px" }, children: name } },
+              { type: "div", props: { style: { fontSize: "64px", fontWeight: 800, color: t.text, fontFamily: FF, lineHeight: 1.0, letterSpacing: "-2px", marginTop: "30px" }, children: name } },
               { type: "div", props: { style: { fontSize: "21px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "14px", lineHeight: 1.4 }, children: subtitle || `${list.length} models. One family.` } },
 
               // --- Model row-cards ---
-              { type: "div", props: { style: { display: "flex", flexDirection: "column", width: "100%", marginTop: "34px" }, children: list.map(modelRow) } },
+              { type: "div", props: { style: { display: "flex", flexDirection: "column", width: "100%", marginTop: "30px" }, children: list.map(modelRow) } },
 
               // spacer
               { type: "div", props: { style: { display: "flex", flex: 1, minHeight: "20px" } } },
 
-              // --- Footer: QR + CTA ---
-              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginBottom: "24px" } } },
+              // --- Footer: centered QR + CTA (X / editorial style) ---
+              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginBottom: "28px" } } },
               {
                 type: "div",
                 props: {
-                  style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%" },
+                  style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" },
                   children: [
+                    // enlarged, centered QR
                     {
                       type: "div",
                       props: {
-                        style: { display: "flex", alignItems: "center", justifyContent: "center", width: "118px", height: "118px", background: "#ffffff", borderRadius: "16px", overflow: "hidden", padding: "8px", boxSizing: "border-box", flexShrink: 0, marginRight: "24px", border: `1px solid ${t.divider}` },
+                        style: { display: "flex", alignItems: "center", justifyContent: "center", width: "168px", height: "168px", background: "#ffffff", borderRadius: "20px", overflow: "hidden", padding: "10px", boxSizing: "border-box", flexShrink: 0, border: `1px solid ${t.divider}` },
                         children: [{ type: "img", props: { src: qrDataURI, style: { width: "100%", height: "100%" } } }],
                       },
                     },
-                    {
-                      type: "div",
-                      props: {
-                        style: { display: "flex", flexDirection: "column", flex: 1 },
-                        children: [
-                          { type: "div", props: { style: { fontSize: "12px", fontWeight: 700, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2px", marginBottom: "10px" }, children: L.scanHint } },
-                          { type: "div", props: { style: { fontSize: "17px", fontWeight: 600, color: t.accent, fontFamily: FF }, children: displayUrl } },
-                        ],
-                      },
-                    },
+                    // scan hint
+                    { type: "div", props: { style: { fontSize: "12px", fontWeight: 700, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2.5px", marginTop: "18px" }, children: L.scanHint } },
+                    // url
+                    { type: "div", props: { style: { fontSize: "18px", fontWeight: 600, color: t.accent, fontFamily: FF, marginTop: "6px" }, children: displayUrl } },
                   ],
                 },
               },

@@ -1,6 +1,6 @@
 # Satori Card Generator (Node.js)
 
-The **Satori renderer** — an alternative tool-call layer using `@vercel/satori` (HTML/CSS → SVG) + `@resvg/resvg-js` (SVG → PNG). Produces deterministic, high-fidelity cards without a browser.
+The **Satori renderer** — an alternative tool-call layer using [`satori`](https://github.com/vercel/satori) (HTML/CSS → SVG) + `@resvg/resvg-js` (SVG → PNG). Produces deterministic, high-fidelity cards without a browser.
 
 Themes are loaded from the shared **[`../themes.json`](../themes.json)** (single source of truth, shared with the Python renderer). All 14 themes and 3 formats are available. See [`../SKILL.md`](../SKILL.md) for the full architecture.
 
@@ -18,12 +18,13 @@ Requires [Node.js](https://nodejs.org/) ≥ 18.
 # Landscape card (default)
 node generate.js --url https://example.com --name "Kimi K3" --image logo.png
 
-# Social portrait card with feature bullets
+# Social portrait card with brand labels + feature bullets
 node generate.js --url https://example.com --name "Kimi K3" --image logo.png \
-  --type social --subtitle "新一代 AI 模型" --f1 "AI 对话" --f2 "多模态" --f3 "联网搜索"
+  --type social --subtitle "Next-gen AI model" --brand "Acme" --platform "AI Platform" \
+  --f1 "Chat" --f2 "Multimodal" --f3 "Web Search"
 
-# Square format (1:1)
-node generate.js --url https://example.com --name "Kimi K3" --image logo.png --type square
+# Square format (1:1), Chinese copy
+node generate.js --url https://example.com --name "Kimi K3" --image logo.png --type square --lang zh
 
 # Custom accent color
 node generate.js --url https://example.com --name "Kimi K3" --image logo.png --theme midnight-galaxy --accent "#ff6b6b"
@@ -34,11 +35,14 @@ node generate.js --url https://example.com --name "Kimi K3" --image logo.png --t
 | Flag         | Default          | Description                          |
 |--------------|------------------|--------------------------------------|
 | `--url`      | (required)       | Target URL (QR code destination)     |
-| `--name`     | (required)       | Model / product name                 |
+| `--name`     | (required)       | Model / product name (the hero)      |
 | `--image`    | (required)       | Path to logo / screenshot            |
 | `--type`     | `landscape`       | `landscape` / `social` / `square`    |
 | `--theme`    | `tech-innovation` | Any key from `../themes.json`         |
-| `--subtitle` | (none)           | Subtitle line under the name          |
+| `--subtitle` | (locale default) | Subtitle line under the name          |
+| `--brand`    | (hidden)         | Optional company / brand name         |
+| `--platform` | (hidden)         | Optional platform / tagline label     |
+| `--lang`     | `en`             | Label language: `en` or `zh`          |
 | `--f1` `--f2` `--f3` | (defaults) | Feature bullets (social layout only) |
 | `--accent`   | (theme default)  | Override accent color (hex)          |
 | `--output`   | `card.png`        | Output image path                    |

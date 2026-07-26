@@ -15,7 +15,7 @@
  *
  * Usage (social portrait card with feature bullets):
  *   node generate.js --url https://example.com --name "Kimi K3" --image logo.png \
- *     --type social --subtitle "新一代 AI 模型" --f1 "AI 对话" --f2 "多模态"
+ *     --type social --subtitle "新一�?AI 模型" --f1 "AI 对话" --f2 "多模�?
  *
  * Usage (square format):
  *   node generate.js --url https://example.com --name "Kimi K3" --image logo.png --type square
@@ -80,10 +80,20 @@ const feature1 = getArg("--f1") || "";
 const feature2 = getArg("--f2") || "";
 const feature3 = getArg("--f3") || "";
 const accentOverride = getArg("--accent") || "";
+const brand = getArg("--brand") || "";
+const platform = getArg("--platform") || "";
+const lang = getArg("--lang") || "en";
 const outputPath = getArg("--output") || "card.png";
 
+// Unified per-card copy (international default = en).
+const LOCALES = {
+  en: { badge: "NEW RELEASE", scanHint: "SCAN TO VISIT", defaultSubtitle: "Now Available" },
+  zh: { badge: "全新发布", scanHint: "扫码访问", defaultSubtitle: "现已上线" },
+};
+const L = LOCALES[lang] || LOCALES.en;
+
 if (!url || !name || !imagePath) {
-  console.error("Usage: node generate.js --url <URL> --name <Name> --image <path> [--type social|landscape|square] [--theme tech] [--subtitle text] [--f1 feature] [--f2 feature] [--f3 feature] [--accent #hex] [--output card.png]");
+  console.error("Usage: node generate.js --url <URL> --name <Name> --image <path> [--type social|landscape|square] [--theme tech] [--subtitle text] [--f1 feature] [--f2 feature] [--f3 feature] [--accent #hex] [--brand text] [--platform text] [--lang en|zh] [--output card.png]");
   process.exit(1);
 }
 
@@ -191,7 +201,7 @@ function socialCard({ name, subtitle, displayUrl, qrDataURI, feature1, feature2,
                   children: [
                     // thin accent rule
                     { type: "div", props: { style: { width: "48px", height: "2px", background: t.accent, borderRadius: "1px", marginBottom: "36px" } } },
-                    // logo container — clean, subtle
+                    // logo container �?clean, subtle
                     {
                       type: "div",
                       props: {
@@ -205,8 +215,9 @@ function socialCard({ name, subtitle, displayUrl, qrDataURI, feature1, feature2,
                         children: [{ type: "img", props: { src: logoURI, style: { maxWidth: "100%", maxHeight: "100%", objectFit: "contain" } } }],
                       },
                     },
-                    // platform label — clean, no spaced-out chars
-                    { type: "div", props: { style: { fontSize: "13px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "4px", marginTop: "28px" }, children: "OPE.AI PLATFORM" } },
+                    // platform label �?clean, no spaced-out chars (optional)
+                    ...(platform ? [{ type: "div", props: { style: { fontSize: "13px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "4px", marginTop: "28px" }, children: platform } }] : []),
+                    ...(brand ? [{ type: "div", props: { style: { fontSize: "18px", fontWeight: 600, color: t.text, fontFamily: FF, marginTop: platform ? "6px" : "28px" }, children: brand } }] : []),
                   ],
                 },
               },
@@ -221,7 +232,7 @@ function socialCard({ name, subtitle, displayUrl, qrDataURI, feature1, feature2,
                   },
                   children: [
                     // subtle outline badge
-                    { type: "div", props: { style: { display: "flex", alignItems: "center", justifyContent: "center", padding: "5px 16px", background: `${t.accent}1a`, border: `1px solid ${t.accent}66`, borderRadius: "100px", marginBottom: "20px" }, children: [{ type: "div", props: { style: { fontSize: "11px", fontWeight: 700, color: t.accent, fontFamily: FF, letterSpacing: "2px" }, children: "NEW RELEASE" } }] } },
+                    { type: "div", props: { style: { display: "flex", alignItems: "center", justifyContent: "center", padding: "5px 16px", background: `${t.accent}1a`, border: `1px solid ${t.accent}66`, borderRadius: "100px", marginBottom: "20px" }, children: [{ type: "div", props: { style: { fontSize: "11px", fontWeight: 700, color: t.accent, fontFamily: FF, letterSpacing: "2px" }, children: L.badge } }] } },
                     // name
                     { type: "div", props: { style: { fontSize: "48px", fontWeight: 700, color: t.text, fontFamily: FF, lineHeight: 1.1, letterSpacing: "-1.5px", textAlign: "center" }, children: name } },
                     // subtitle
@@ -261,7 +272,7 @@ function socialCard({ name, subtitle, displayUrl, qrDataURI, feature1, feature2,
                             props: {
                               style: { display: "flex", flexDirection: "column", flex: 1 },
                               children: [
-                                { type: "div", props: { style: { fontSize: "11px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2px", marginBottom: "8px" }, children: "SCAN TO EXPLORE" } },
+                                { type: "div", props: { style: { fontSize: "11px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2px", marginBottom: "8px" }, children: L.scanHint } },
                                 { type: "div", props: { style: { fontSize: "15px", fontWeight: 500, color: t.accent, fontFamily: FF }, children: displayUrl } },
                               ],
                             },
@@ -311,7 +322,8 @@ function squareCard({ name, subtitle, displayUrl, qrDataURI }) {
               },
               // name
               { type: "div", props: { style: { fontSize: "56px", fontWeight: 700, color: t.text, fontFamily: FF, lineHeight: 1.1, letterSpacing: "-1px", textAlign: "center" }, children: name } },
-              ...(subtitle ? [{ type: "div", props: { style: { fontSize: "22px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "14px", textAlign: "center" }, children: subtitle } }] : []),
+              { type: "div", props: { style: { fontSize: "22px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "14px", textAlign: "center" }, children: subtitle || L.defaultSubtitle } },
+              ...(brand || platform ? [{ type: "div", props: { style: { fontSize: "13px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "3px", marginTop: "12px", textAlign: "center" }, children: [brand, platform].filter(Boolean).join("  ·  ") } }] : []),
               { type: "div", props: { style: { flex: 1 } } },
               // divider
               { type: "div", props: { style: { width: "100%", height: "1px", background: `linear-gradient(90deg, transparent 0%, ${t.divider} 50%, transparent 100%)`, marginBottom: "28px" } } },
@@ -333,7 +345,7 @@ function squareCard({ name, subtitle, displayUrl, qrDataURI }) {
                       props: {
                         style: { display: "flex", flexDirection: "column" },
                         children: [
-                          { type: "div", props: { style: { fontSize: "13px", fontWeight: 500, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }, children: "Scan to visit" } },
+                          { type: "div", props: { style: { fontSize: "13px", fontWeight: 500, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }, children: L.scanHint } },
                           { type: "div", props: { style: { fontSize: "16px", fontWeight: 400, color: t.accent, fontFamily: FF, opacity: 0.9 }, children: displayUrl } },
                         ],
                       },
@@ -372,12 +384,13 @@ function landscapeCard({ name, subtitle, displayUrl, qrDataURI }) {
             // Right: Content
             { type: "div", props: { style: { display: "flex", flexDirection: "column", justifyContent: "center", width: "48%", height: "100%", padding: "40px 40px 40px 36px", boxSizing: "border-box" }, children: [
               { type: "div", props: { style: { width: "48px", height: "4px", background: t.accent, borderRadius: "2px", marginBottom: "24px" } } },
-              { type: "div", props: { style: { fontSize: "46px", fontWeight: 700, color: t.text, fontFamily: FF, lineHeight: 1.15, marginBottom: subtitle ? "12px" : "28px", letterSpacing: "-0.5px" }, children: name } },
-              ...(subtitle ? [{ type: "div", props: { style: { fontSize: "20px", fontWeight: 400, color: t.textSec, fontFamily: FF, lineHeight: 1.4, marginBottom: "28px" }, children: subtitle } }] : []),
+              ...(brand || platform ? [{ type: "div", props: { style: { fontSize: "13px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "3px", marginBottom: "14px" }, children: [brand, platform].filter(Boolean).join("  ·  ") } }] : []),
+              { type: "div", props: { style: { fontSize: "46px", fontWeight: 700, color: t.text, fontFamily: FF, lineHeight: 1.15, marginBottom: "12px", letterSpacing: "-0.5px" }, children: name } },
+              { type: "div", props: { style: { fontSize: "20px", fontWeight: 400, color: t.textSec, fontFamily: FF, lineHeight: 1.4, marginBottom: "28px" }, children: subtitle || L.defaultSubtitle } },
               { type: "div", props: { style: { width: "60%", height: "1px", background: t.divider, marginBottom: "28px" } } },
               { type: "div", props: { style: { display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "16px", width: "100%" }, children: [
                 { type: "div", props: { style: { display: "flex", flexDirection: "column", flex: 1 }, children: [
-                  { type: "div", props: { style: { fontSize: "13px", fontWeight: 500, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }, children: "Scan to visit" } },
+                  { type: "div", props: { style: { fontSize: "13px", fontWeight: 500, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }, children: L.scanHint } },
                   { type: "div", props: { style: { fontSize: "15px", fontWeight: 400, color: t.accent, fontFamily: FF, opacity: 0.9 }, children: displayUrl } },
                 ] } },
                 { type: "div", props: { style: { display: "flex", width: "100px", height: "100px", background: isDark ? "#1a1f2b" : "#f5f5f0", borderRadius: "12px", overflow: "hidden", alignItems: "center", justifyContent: "center", padding: "6px", boxSizing: "border-box", border: `2px solid ${t.divider}` }, children: [{ type: "img", props: { src: qrDataURI, style: { width: "100%", height: "100%" } } }] } },

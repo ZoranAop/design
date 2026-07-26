@@ -1,6 +1,6 @@
 ---
 name: digital-business-card
-description: Generate a design-forward digital business card with an embedded QR code from a URL. Use when the user wants to create a shareable card image that links to a website, model page, or product page. Produces landscape / social / square PNG cards with 14 design themes. Can query canvas-design, brand-guidelines, and theme-factory skills for design optimization.
+description: Generate a clean, international-style digital business card with an embedded QR code from a URL. Use when the user wants to create a shareable card image that links to a website, model page, or product page. Produces landscape / social / square PNG cards with 14 design themes, optional brand/platform labels, and en/zh copy. Can query canvas-design, brand-guidelines, and theme-factory skills for design optimization.
 ---
 
 # Digital Business Card Skill
@@ -43,6 +43,18 @@ All 14 themes live in **`themes.json`** at the repo root — the single source o
 - 4 **canvas-design** philosophies: `minimal`, `tech`, `organic`, `bold`
 - 10 **theme-factory** palettes: `tech-innovation`, `midnight-galaxy`, `ocean-depths`, `sunset-boulevard`, `forest-canopy`, `modern-minimalist`, `golden-hour`, `arctic-frost`, `desert-rose`, `botanical-garden`
 
+## Design principles (international, minimal, focused)
+
+The card design follows a **clean international** aesthetic — the kind used on
+global product launch pages and app-store cards:
+
+- **One focal point.** The model/product name is the hero. Everything else supports it.
+- **Generous whitespace.** No decorative clutter (no grid overlays, corner brackets, or glow).
+- **A single accent.** One thin accent rule + one small outlined badge; the theme accent color is used sparingly.
+- **Clear hierarchy.** Optional brand line → logo → badge → name → subtitle → divider → QR + URL.
+- **Neutral, legible type.** Segoe UI / Inter with CJK fallback; tight letter-spacing on the name only.
+- **Unified copy per card.** All labels come from one locale (`--lang en|zh`); never mix languages.
+
 ## How to invoke (tool call)
 
 ### Python (primary, all renderers)
@@ -53,21 +65,43 @@ pip install -r card_generator/requirements.txt
 # auto renderer (browser → Pillow fallback), default theme
 python card_generator/generate_card.py --url https://example.com --name "My Model" --image ui.png
 
-# social format + theme-factory palette
-python card_generator/generate_card.py --url https://example.com --name "My Model" --image ui.png --theme tech-innovation --format social
+# social format + theme-factory palette, with brand + platform labels
+python card_generator/generate_card.py --url https://example.com --name "My Model" --image ui.png \
+  --theme tech-innovation --format social --brand "Acme" --platform "AI Platform"
 
-# Satori renderer (delegates to Node.js), square format
-python card_generator/generate_card.py --url https://example.com --name "My Model" --image ui.png --renderer satori --format square
+# Satori renderer (delegates to Node.js), square format, Chinese copy
+python card_generator/generate_card.py --url https://example.com --name "My Model" --image ui.png \
+  --renderer satori --format square --lang zh
 
 # custom accent color + subtitle
-python card_generator/generate_card.py --url https://example.com --name "My Model" --image ui.png --theme midnight-galaxy --subtitle "Now Available" --accent "#ff6b6b"
+python card_generator/generate_card.py --url https://example.com --name "My Model" --image ui.png \
+  --theme midnight-galaxy --subtitle "Now Available" --accent "#ff6b6b"
 ```
+
+### Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--url` | (required) | Target URL (QR code destination) |
+| `--name` | (required) | Model / product name (the hero) |
+| `--image` | (required) | Logo / reference screenshot |
+| `--theme` | `tech-innovation` | Any key from `themes.json` |
+| `--format` | `landscape` | `landscape` / `social` / `square` |
+| `--subtitle` | (locale default) | One-line descriptor under the name |
+| `--brand` | (hidden) | Optional company / brand name |
+| `--platform` | (hidden) | Optional platform / tagline label |
+| `--lang` | `en` | Copy language for labels: `en` or `zh` |
+| `--accent` | (theme default) | Override accent color (hex) |
+| `--renderer` | `auto` | `auto` / `html` / `pillow` / `satori` |
+| `--output` | `card.png` | Output image path |
 
 ### Node.js (Satori directly)
 
 ```bash
 cd satori-card && npm install
-node generate.js --url https://example.com --name "Kimi K3" --image logo.png --type social --subtitle "新一代 AI 模型" --f1 "AI 对话" --f2 "多模态"
+node generate.js --url https://example.com --name "Kimi K3" --image logo.png \
+  --type social --subtitle "Next-gen AI model" --brand "Acme" --platform "AI Platform" \
+  --f1 "Chat" --f2 "Multimodal" --lang en
 ```
 
 ## Renderers
@@ -75,9 +109,13 @@ node generate.js --url https://example.com --name "Kimi K3" --image logo.png --t
 | Renderer | Engine                                  | When to use                                   |
 |----------|-----------------------------------------|-----------------------------------------------|
 | auto     | browser headless → Pillow fallback      | Default; best available fidelity              |
-| html     | HTML/CSS + browser headless (Chromium)  | High fidelity: glassmorphism, gradients, glow |
+| html     | HTML/CSS + browser headless (Chromium)  | Highest fidelity clean layout (Edge/Chrome)   |
 | pillow   | Pillow/PIL card-in-canvas               | No browser; pure-Python environments          |
-| satori   | @vercel/satori + @resvg/resvg-js (Node) | Deterministic SVG pipeline; great for CI      |
+| satori   | satori + @resvg/resvg-js (Node)         | Deterministic SVG pipeline; great for CI      |
+
+> **Note:** the `html` renderer uses `--headless=new` and writes to an absolute
+> output path (older builds silently failed with a relative path). All three
+> renderers now share the same clean, international layout.
 
 ## Design optimization: querying other skills
 

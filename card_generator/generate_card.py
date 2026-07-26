@@ -37,6 +37,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 import qrcode
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -85,14 +86,38 @@ def _load_themes():
 FORMATS, THEMES = _load_themes()
 
 # ================================================================
+#  LOCALE STRINGS  (unified per-card copy; international default = en)
+# ================================================================
+
+LOCALES = {
+    "en": {
+        "badge": "NEW RELEASE",
+        "scan_hint": "SCAN TO VISIT",
+        "scan_label": "SCAN ME",
+        "default_subtitle": "Now Available",
+    },
+    "zh": {
+        "badge": "全新发布",
+        "scan_hint": "扫码访问",
+        "scan_label": "扫一扫",
+        "default_subtitle": "现已上线",
+    },
+}
+
+
+def _loc(lang):
+    return LOCALES.get(lang, LOCALES["en"])
+
+
+# ================================================================
 #  LAYOUT CONSTANTS
 # ================================================================
 
 CARD_MARGIN = 28
-CARD_RADIUS = 20
-CARD_PAD = 48
-SHADOW_BLUR = 20
-SHADOW_OFFSET = (4, 8)
+CARD_RADIUS = 24
+CARD_PAD = 56
+SHADOW_BLUR = 24
+SHADOW_OFFSET = (0, 10)
 
 # ================================================================
 #  COLOR / ASSET UTILITIES
@@ -178,11 +203,15 @@ def find_browser():
 # ================================================================
 
 
-def _build_html(url, name, logo_b64, qr_b64, theme, fmt, subtitle, accent_hex):
+def _build_html(url, name, logo_b64, qr_b64, theme, fmt, subtitle, accent_hex,
+                brand="", platform="", lang="en"):
+    """Clean, international, minimal card. Generous whitespace, one accent rule,
+    clear hierarchy, subtle shadow. Layout adapts to landscape / social / square."""
     t = dict(theme)
     if accent_hex:
         t["accent"] = _hex_to_rgb(accent_hex)
 
+    loc = _loc(lang)
     w, h = fmt["w"], fmt["h"]
     is_portrait = h > w
     is_square = h == w
@@ -192,125 +221,121 @@ def _build_html(url, name, logo_b64, qr_b64, theme, fmt, subtitle, accent_hex):
     text_hex = _rgb_to_hex(t["text_primary"])
     text_sec_hex = _rgb_to_hex(t["text_secondary"])
     accent_hex_val = _rgb_to_hex(t["accent"])
-    accent_alt_hex = _rgb_to_hex(t["accent_alt"])
     divider_hex = _rgb_to_hex(t["divider"])
+    logo_bg = "rgba(255,255,255,0.04)" if t["dark"] else "rgba(0,0,0,0.02)"
+    shadow = "0 16px 64px rgba(0,0,0,0.55)" if t["dark"] else "0 16px 64px rgba(0,0,0,0.08)"
 
-    name_size = 80 if is_portrait else (64 if is_square else 48)
-    sub_size = 26 if is_portrait else (20 if is_square else 22)
-    logo_box = 80 if is_portrait else (68 if is_square else 56)
-    qr_box = 200 if is_portrait else (180 if is_square else 140)
-    padding = "60px 50px" if is_portrait else ("50px" if is_square else "40px")
+    name_size = 66 if is_portrait else (56 if is_square else 46)
+    sub_size = 22 if is_portrait else (20 if is_square else 19)
+    logo_box = 132 if is_portrait else (150 if is_square else 120)
+    qr_box = 132 if is_portrait else (150 if is_square else 108)
+    pad = 64 if is_portrait else (60 if is_square else 56)
 
     display_url = url.replace("https://", "").replace("http://", "").rstrip("/")
-    body_layout = "flex-direction:column;" if is_portrait else "flex-direction:row;"
-    footer_layout = ("flex-direction:column; gap:24px; align-items:center;"
-                     if is_portrait else
-                     "flex-direction:row; justify-content:space-between; align-items:flex-end;")
+
+    # Optional brand line (hidden if not provided)
+    brand_html = ""
+    if brand or platform:
+        b = f'<div class="brand">{brand}</div>' if brand else ""
+        p = f'<div class="platform">{platform}</div>' if platform else ""
+        brand_html = f'<div class="brandblock">{b}{p}</div>'
+
+    # Layout: portrait/square = vertical centered; landscape = split row
+    if is_portrait or is_square:
+        body = f"""
+  {brand_html}
+  <div class="logo-wrap"><img src="data:image/png;base64,{logo_b64}" alt="logo"></div>
+  <div class="badge">{loc['badge']}</div>
+  <div class="name">{name}</div>
+  <div class="subtitle">{subtitle or loc['default_subtitle']}</div>
+  <div class="rule"></div>
+  <div class="spacer"></div>
+  <div class="footer">
+    <div class="qr-wrap"><img src="data:image/png;base64,{qr_b64}" alt="QR"></div>
+    <div class="footer-text">
+      <div class="scan-hint">{loc['scan_hint']}</div>
+      <div class="url-text">{display_url}</div>
+    </div>
+  </div>"""
+        card_layout = "flex-direction:column; align-items:center; text-align:center;"
+        footer_layout = "flex-direction:row; align-items:center; justify-content:center; gap:22px;"
+        name_align = "text-align:center;"
+    else:
+        body = f"""
+  <div class="left">
+    <div class="logo-wrap"><img src="data:image/png;base64,{logo_b64}" alt="logo"></div>
+  </div>
+  <div class="right">
+    {brand_html}
+    <div class="badge">{loc['badge']}</div>
+    <div class="name">{name}</div>
+    <div class="subtitle">{subtitle or loc['default_subtitle']}</div>
+    <div class="rule"></div>
+    <div class="footer">
+      <div class="qr-wrap"><img src="data:image/png;base64,{qr_b64}" alt="QR"></div>
+      <div class="footer-text">
+        <div class="scan-hint">{loc['scan_hint']}</div>
+        <div class="url-text">{display_url}</div>
+      </div>
+    </div>
+  </div>"""
+        card_layout = "flex-direction:row; align-items:stretch;"
+        footer_layout = "flex-direction:row; align-items:center; gap:20px;"
+        name_align = ""
 
     return f"""<!DOCTYPE html>
-<html lang="zh">
+<html lang="{lang}">
 <head><meta charset="UTF-8">
 <style>
 * {{ margin:0; padding:0; box-sizing:border-box; }}
 body {{
   width:{w}px; height:{h}px;
-  font-family:'Inter','Segoe UI','Microsoft YaHei',sans-serif;
-  background:{canvas_hex}; overflow:hidden; position:relative;
+  font-family:'Inter','Segoe UI','Microsoft YaHei','PingFang SC',sans-serif;
+  background:{canvas_hex}; overflow:hidden;
 }}
 .card {{
   width:calc(100% - 56px); height:calc(100% - 56px);
-  margin:28px; border-radius:20px;
-  background:{card_hex};
-  {'background:linear-gradient(160deg,' + card_hex + ' 0%, ' + canvas_hex + ' 100%);' if t['dark'] else ''}
-  box-shadow:0 8px 40px rgba(0,0,0,{'0.3' if t['dark'] else '0.1'});
-  display:flex; {body_layout}
-  padding:{padding}; position:relative; overflow:hidden;
+  margin:28px; border-radius:24px;
+  background:{card_hex}; box-shadow:{shadow};
+  display:flex; {card_layout}
+  padding:{pad}px; overflow:hidden;
 }}
-.card::before {{
-  content:''; position:absolute; inset:0;
-  background-image:
-    linear-gradient({accent_hex_val}0a 1px, transparent 1px),
-    linear-gradient(90deg, {accent_hex_val}0a 1px, transparent 1px);
-  background-size:40px 40px; pointer-events:none;
-}}
-.card::after {{
-  content:''; position:absolute; top:0; left:0; right:0; height:4px;
-  background:linear-gradient(90deg, {accent_hex_val}, {accent_alt_hex}, {accent_hex_val});
-}}
-.header {{ display:flex; align-items:center; gap:18px; position:relative; z-index:2; }}
+.left {{ display:flex; align-items:center; justify-content:center; width:48%; padding-right:{pad//2}px; }}
+.right {{ display:flex; flex-direction:column; justify-content:center; flex:1; }}
+.brandblock {{ margin-bottom:24px; }}
+.brand {{ font-size:18px; font-weight:600; color:{text_hex}; letter-spacing:0.3px; }}
+.platform {{ font-size:12px; font-weight:600; color:{text_sec_hex}; text-transform:uppercase; letter-spacing:3px; margin-top:4px; }}
 .logo-wrap {{
   width:{logo_box}px; height:{logo_box}px;
-  background:rgba(255,255,255,{'0.08' if t['dark'] else '0.6'});
-  border:1px solid {accent_hex_val}4d; border-radius:18px;
-  display:flex; align-items:center; justify-content:center;
-  backdrop-filter:blur(10px); flex-shrink:0;
+  background:{logo_bg}; border:1px solid {divider_hex}; border-radius:28px;
+  display:flex; align-items:center; justify-content:center; padding:26px; flex-shrink:0;
 }}
-.logo-wrap img {{ width:60%; height:60%; object-fit:contain; }}
-.brand {{ font-size:22px; font-weight:600; color:{text_hex}; letter-spacing:1px; }}
-.brand-sub {{ font-size:12px; color:{text_sec_hex}; margin-top:3px; letter-spacing:2px; }}
-.hero {{ flex:1; display:flex; flex-direction:column; justify-content:center; position:relative; z-index:2; }}
-.tag {{
-  display:inline-flex; align-items:center; gap:8px;
-  background:{accent_hex_val}1f; border:1px solid {accent_hex_val}66;
-  border-radius:30px; padding:6px 16px; font-size:13px;
-  color:{accent_alt_hex}; font-weight:600; letter-spacing:1px;
-  margin-bottom:20px; width:fit-content;
+.logo-wrap img {{ max-width:100%; max-height:100%; object-fit:contain; }}
+.badge {{
+  display:inline-flex; align-self:{'center' if (is_portrait or is_square) else 'flex-start'};
+  align-items:center; background:{accent_hex_val}1a; border:1px solid {accent_hex_val}55;
+  border-radius:100px; padding:5px 16px; font-size:12px; font-weight:700;
+  color:{accent_hex_val}; letter-spacing:2px; margin:{('28px 0 18px' if (is_portrait or is_square) else '0 0 20px')};
 }}
-.tag-dot {{ width:8px; height:8px; border-radius:50%; background:{accent_alt_hex}; box-shadow:0 0 12px {accent_alt_hex}; }}
-.model-name {{
-  font-size:{name_size}px; font-weight:900;
-  {'background:linear-gradient(135deg,' + text_hex + ' 0%, ' + accent_alt_hex + ' 50%, ' + accent_hex_val + ' 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;' if t['dark'] else 'color:' + text_hex + ';'}
-  letter-spacing:-2px; line-height:1.05; margin-bottom:10px;
+.name {{
+  font-size:{name_size}px; font-weight:700; color:{text_hex};
+  letter-spacing:-1px; line-height:1.1; {name_align}
 }}
-.subtitle {{ font-size:{sub_size}px; color:{text_sec_hex}; margin-bottom:14px; }}
-.desc {{ font-size:16px; color:{text_sec_hex}; line-height:1.7; max-width:500px; }}
-.footer {{
-  display:flex; {footer_layout}
-  position:relative; z-index:2; padding-top:24px;
-  border-top:1px solid {divider_hex}; width:100%;
-}}
-.scan-hint {{ font-size:14px; color:{text_sec_hex}; margin-bottom:5px; letter-spacing:1px; }}
-.url-text {{ font-size:18px; color:{accent_hex_val}; font-weight:600; font-family:'Courier New',monospace; }}
-.url-text span {{ color:{accent_alt_hex}; }}
-.qr-section {{ display:flex; flex-direction:column; align-items:center; gap:8px; }}
+.subtitle {{ font-size:{sub_size}px; font-weight:400; color:{text_sec_hex}; margin-top:12px; {name_align} }}
+.rule {{ width:{'100px' if (is_portrait or is_square) else '64px'}; height:1px; background:{divider_hex}; margin-top:28px; }}
+.spacer {{ flex:1; }}
+.footer {{ display:flex; {footer_layout} margin-top:28px; width:100%; }}
 .qr-wrap {{
-  width:{qr_box}px; height:{qr_box}px;
-  background:rgba(255,255,255,{'0.05' if t['dark'] else '0.7'});
-  border:2px solid {accent_hex_val}80; border-radius:20px; padding:12px;
-  backdrop-filter:blur(10px); box-shadow:0 0 30px {accent_hex_val}33;
+  width:{qr_box}px; height:{qr_box}px; background:#ffffff;
+  border:1px solid {divider_hex}; border-radius:16px; padding:8px; flex-shrink:0;
 }}
-.qr-wrap img {{ width:100%; height:100%; border-radius:8px; }}
-.qr-label {{ font-size:12px; color:{text_sec_hex}; letter-spacing:2px; }}
-.corner {{ position:absolute; width:40px; height:40px; border:2px solid {accent_hex_val}4d; z-index:1; }}
-.corner.tl {{ top:14px; left:14px; border-right:none; border-bottom:none; border-radius:8px 0 0 0; }}
-.corner.tr {{ top:14px; right:14px; border-left:none; border-bottom:none; border-radius:0 8px 0 0; }}
-.corner.bl {{ bottom:14px; left:14px; border-right:none; border-top:none; border-radius:0 0 0 8px; }}
-.corner.br {{ bottom:14px; right:14px; border-left:none; border-top:none; border-radius:0 0 8px 0; }}
+.qr-wrap img {{ width:100%; height:100%; }}
+.footer-text {{ display:flex; flex-direction:column; text-align:left; }}
+.scan-hint {{ font-size:12px; font-weight:600; color:{text_sec_hex}; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }}
+.url-text {{ font-size:16px; font-weight:500; color:{accent_hex_val}; }}
 </style></head>
 <body>
-<div class="card">
-  <div class="corner tl"></div><div class="corner tr"></div>
-  <div class="corner bl"></div><div class="corner br"></div>
-  <div class="header">
-    <div class="logo-wrap"><img src="data:image/png;base64,{logo_b64}" alt="logo"></div>
-    <div><div class="brand">OPEAI</div><div class="brand-sub">AI MODEL PLATFORM</div></div>
-  </div>
-  <div class="hero">
-    <div class="tag"><span class="tag-dot"></span>NEW MODEL RELEASED</div>
-    <div class="model-name">{name}</div>
-    <div class="subtitle">{subtitle or 'Now Available'}</div>
-    <div class="desc">Scan the QR code to visit the model page and start exploring.</div>
-  </div>
-  <div class="footer">
-    <div class="footer-left">
-      <div class="scan-hint">SCAN TO VISIT</div>
-      <div class="url-text"><span>https://</span>{display_url}</div>
-    </div>
-    <div class="qr-section">
-      <div class="qr-wrap"><img src="data:image/png;base64,{qr_b64}" alt="QR"></div>
-      <div class="qr-label">SCAN ME</div>
-    </div>
-  </div>
+<div class="card">{body}
 </div>
 </body></html>"""
 
@@ -321,18 +346,45 @@ body {{
 
 
 def _render_html(browser_path, html_str, output_path, width, height):
+    # The browser resolves --screenshot relative to its own CWD, not ours, so a
+    # relative output_path fails with "access denied". Always pass an absolute path.
+    abs_output = os.path.abspath(output_path)
     with tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False, encoding="utf-8") as f:
         f.write(html_str)
         html_path = f.name
+    profile_dir = tempfile.mkdtemp(prefix="card_profile_")
     try:
         file_uri = "file:///" + html_path.replace("\\", "/")
-        cmd = [browser_path, "--headless", "--disable-gpu", "--no-sandbox",
-               "--hide-scrollbars", "--force-device-scale-factor=1",
-               f"--window-size={width},{height}", f"--screenshot={output_path}", file_uri]
-        subprocess.run(cmd, capture_output=True, timeout=30)
-        return os.path.exists(output_path)
+        # Modern Chromium/Edge require --headless=new; the bare --headless flag
+        # is deprecated and silently produces no screenshot on recent builds.
+        # A throwaway --user-data-dir prevents attaching to a running instance
+        # (which would cause the launcher to exit before the screenshot is taken).
+        base = ["--disable-gpu", "--no-sandbox", "--hide-scrollbars",
+                "--no-first-run", "--disable-extensions",
+                f"--user-data-dir={profile_dir}",
+                "--force-device-scale-factor=1",
+                f"--window-size={width},{height}",
+                f"--screenshot={abs_output}", file_uri]
+        for headless in ("--headless=new", "--headless"):
+            if os.path.exists(abs_output):
+                try:
+                    os.unlink(abs_output)
+                except OSError:
+                    pass
+            result = subprocess.run([browser_path, headless] + base,
+                                    capture_output=True, timeout=30)
+            # Edge/Chrome may relaunch into a child process and return before the
+            # screenshot is flushed to disk. Poll briefly for the file.
+            for _ in range(20):
+                if os.path.exists(abs_output) and os.path.getsize(abs_output) > 0:
+                    return True
+                time.sleep(0.25)
+        if result.stderr:
+            print(f"[WARN] Browser stderr: {result.stderr.decode(errors='ignore').strip()[:200]}")
+        return False
     finally:
         os.unlink(html_path)
+        shutil.rmtree(profile_dir, ignore_errors=True)
 
 
 # ================================================================
@@ -342,7 +394,8 @@ def _render_html(browser_path, html_str, output_path, width, height):
 _SATORI_SCRIPT = os.path.normpath(os.path.join(_HERE, "..", "satori-card", "generate.js"))
 
 
-def _render_satori(url, name, image_path, output_path, theme, fmt_name, subtitle, accent_hex):
+def _render_satori(url, name, image_path, output_path, theme, fmt_name, subtitle, accent_hex,
+                   brand="", platform="", lang="en"):
     """Invoke the Node.js satori renderer as a subprocess. Returns True on success."""
     if not shutil.which("node"):
         print("[WARN] Node.js not found on PATH; cannot use satori renderer.")
@@ -353,11 +406,16 @@ def _render_satori(url, name, image_path, output_path, theme, fmt_name, subtitle
 
     cmd = ["node", _SATORI_SCRIPT,
            "--url", url, "--name", name, "--image", image_path,
-           "--theme", theme, "--type", fmt_name, "--output", output_path]
+           "--theme", theme, "--type", fmt_name, "--output", output_path,
+           "--lang", lang]
     if subtitle:
         cmd += ["--subtitle", subtitle]
     if accent_hex:
         cmd += ["--accent", accent_hex]
+    if brand:
+        cmd += ["--brand", brand]
+    if platform:
+        cmd += ["--platform", platform]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
@@ -372,13 +430,6 @@ def _render_satori(url, name, image_path, output_path, theme, fmt_name, subtitle
 # ================================================================
 #  DRAWING PRIMITIVES (Pillow)
 # ================================================================
-
-
-def _rounded_mask(size, radius):
-    w, h = size
-    mask = Image.new("L", (w, h), 0)
-    ImageDraw.Draw(mask).rounded_rectangle([(0, 0), (w - 1, h - 1)], radius=radius, fill=255)
-    return mask
 
 
 def _draw_shadow(card_img, radius, shadow_color, shadow_offset, shadow_blur):
@@ -405,191 +456,224 @@ def _make_qr_block(url, size, theme):
     qr.make(fit=True)
     qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
     qr_img = qr_img.resize((size, size), Image.Resampling.LANCZOS)
-    pad = 12
+    pad = 10
     outer = size + pad * 2
-    block = Image.new("RGBA", (outer + 60, outer + 20), (0, 0, 0, 0))
+    block = Image.new("RGBA", (outer, outer), (0, 0, 0, 0))
     bd = ImageDraw.Draw(block)
     bd.rounded_rectangle(
-        [(0, 22), (outer - 1, outer + 22 - 1)],
+        [(0, 0), (outer - 1, outer - 1)],
         radius=theme["qr_radius"], fill=(255, 255, 255, 255),
-        outline=theme["accent"] + (255,), width=2,
+        outline=theme["divider"] + (255,), width=1,
     )
-    block.paste(qr_img, (pad, pad + 22), qr_img)
-    bd.rectangle([4, 0, 4 + 32, 3], fill=theme["accent"])
+    block.paste(qr_img, (pad, pad), qr_img)
     return block
 
 
-def _draw_accent_dot(draw, x, y, color, r=3):
-    draw.ellipse([(x - r, y - r), (x + r, y + r)], fill=color)
-
-
 # ================================================================
-#  PILLOW RENDERER (card-in-canvas design)
+#  PILLOW RENDERER (clean international card-in-canvas design)
 # ================================================================
 
 
-def _render_pillow(url, name, image_path, output_path, theme, fmt, subtitle, accent_hex):
+def _wrap_text(draw, text, font, max_w):
+    """Wrap text (handles CJK char-by-char and Latin word-by-word)."""
+    if draw.textlength(text, font=font) <= max_w:
+        return [text]
+    lines, cur = [], ""
+    has_space = " " in text
+    tokens = text.split(" ") if has_space else list(text)
+    joiner = " " if has_space else ""
+    for tok in tokens:
+        trial = (cur + joiner + tok).strip() if cur else tok
+        if draw.textlength(trial, font=font) <= max_w:
+            cur = trial
+        else:
+            if cur:
+                lines.append(cur)
+            cur = tok
+    if cur:
+        lines.append(cur)
+    return lines
+
+
+def _render_pillow(url, name, image_path, output_path, theme, fmt, subtitle, accent_hex,
+                   brand="", platform="", lang="en"):
     t = dict(theme)
     if accent_hex:
         t["accent"] = _hex_to_rgb(accent_hex)
+    loc = _loc(lang)
 
     cw, ch = fmt["w"], fmt["h"]
-    is_portrait = ch > cw
+    is_landscape = cw > ch
 
     canvas = Image.new("RGB", (cw, ch), t["canvas_bg"])
-    draw = ImageDraw.Draw(canvas)
 
-    card_margin = CARD_MARGIN
-    card_x, card_y = card_margin, card_margin
-    card_w = cw - card_margin * 2
-    card_h = ch - card_margin * 2
+    card_x, card_y = CARD_MARGIN, CARD_MARGIN
+    card_w = cw - CARD_MARGIN * 2
+    card_h = ch - CARD_MARGIN * 2
 
     card = Image.new("RGBA", (card_w, card_h), (0, 0, 0, 0))
     cd = ImageDraw.Draw(card)
     cd.rounded_rectangle([(0, 0), (card_w - 1, card_h - 1)], radius=CARD_RADIUS, fill=t["card_bg"])
 
     pad = CARD_PAD
-    ui_max_w = min(520, card_w - 2 * pad - 200)
-    ui_max_h = min(340, card_h - 2 * pad - 100)
-    qr_size = 140 if not is_portrait else 160
 
-    if is_portrait:
-        left_x = pad
-        left_w = card_w - pad * 2
-        left_h = card_h - pad * 2
-        gap = 0
-        right_x = pad
-        right_w = card_w - pad * 2
-    else:
-        left_x = pad
-        left_w = ui_max_w
-        left_h = card_h - pad * 2
-        gap = 48
-        right_x = left_x + left_w + gap
-        right_w = card_w - right_x - pad
-
-    # UI image
-    ui_img = Image.open(image_path).convert("RGB")
-    ow, oh = ui_img.size
-    scale = min(ui_max_w / ow, ui_max_h / oh, 1.0)
-    uw, uh = int(ow * scale), int(oh * scale)
-    ui_img = ui_img.resize((uw, uh), Image.Resampling.LANCZOS)
-
-    if is_portrait:
-        ui_y = pad
-        ui_x = left_x + (left_w - uw) // 2
-    else:
-        ui_y = pad + (left_h - uh) // 2
-        ui_x = left_x
-
-    mask = _rounded_mask((uw, uh), t["ui_radius"])
-    ui_rounded = Image.new("RGBA", (uw, uh), (0, 0, 0, 0))
-    ui_rounded.paste(ui_img, (0, 0))
-    ui_rounded.putalpha(mask)
-
-    ushadow = Image.new("RGBA", (uw + 20, uh + 20), (0, 0, 0, 30))
-    ushadow = ushadow.filter(ImageFilter.GaussianBlur(radius=10))
-    card.paste(ushadow, (ui_x - 4, ui_y + 4), ushadow)
-    card.paste(ui_rounded, (ui_x, ui_y), ui_rounded)
-    cd.rounded_rectangle(
-        [(ui_x - 1, ui_y - 1), (ui_x + uw, ui_y + uh)],
-        radius=t["ui_radius"], outline=t["divider"], width=1,
-    )
-
-    # QR block
-    qr_block = _make_qr_block(url, qr_size, t)
-    qr_bw, qr_bh = qr_block.size
-
-    # Typography
-    heading_font = _resolve_font(48 if not is_portrait else 56, prefer_bold=True)
-    body_font = _resolve_font(22 if not is_portrait else 26)
-    caption_font = _resolve_font(16 if not is_portrait else 18)
+    # Fonts
+    f_name = _resolve_font(46 if is_landscape else 56, prefer_bold=True)
+    f_sub = _resolve_font(20 if is_landscape else 22)
+    f_brand = _resolve_font(18, prefer_bold=True)
+    f_platform = _resolve_font(12, prefer_bold=True)
+    f_badge = _resolve_font(12, prefer_bold=True)
+    f_hint = _resolve_font(12, prefer_bold=True)
+    f_url = _resolve_font(16)
 
     display_url = url.replace("https://", "").replace("http://", "").rstrip("/")
 
-    lines_info = []
+    def _spaced(s, n=2):
+        return (" " * (n // 2 + 1)).join(list(s)) if s else s
 
-    # Model name (may need wrapping)
-    remaining = name
-    while remaining:
-        for cut in range(len(remaining), 0, -1):
-            if draw.textlength(remaining[:cut], font=heading_font) <= right_w:
-                lines_info.append(("heading", remaining[:cut], heading_font))
-                remaining = remaining[cut:]
-                break
-        else:
-            lines_info.append(("heading", remaining, heading_font))
-            break
+    # ---- Logo tile ----
+    logo_box = 132 if is_landscape else 150
+    logo_bg = (255, 255, 255) if not t["dark"] else t["card_bg"]
+    logo_tint = 10 if t["dark"] else 8
 
-    if subtitle:
-        lines_info.append(("gap_small", "", None))
-        lines_info.append(("body", subtitle, body_font))
-    lines_info.append(("gap_big", "", None))
-    lines_info.append(("caption", "扫码访问", caption_font))
+    ui_img = Image.open(image_path).convert("RGBA")
+    inner = logo_box - 52
+    ui_img.thumbnail((inner, inner), Image.Resampling.LANCZOS)
 
-    # URL wrapping
-    display_url_copy = display_url
-    while display_url_copy:
-        for cut in range(min(len(display_url_copy), 40), 0, -1):
-            if draw.textlength(display_url_copy[:cut], font=caption_font) <= right_w - 10:
-                lines_info.append(("url", display_url_copy[:cut], caption_font))
-                display_url_copy = display_url_copy[cut:]
-                break
-        else:
-            lines_info.append(("url", display_url_copy[:40], caption_font))
-            display_url_copy = display_url_copy[40:]
+    tile = Image.new("RGBA", (logo_box, logo_box), (0, 0, 0, 0))
+    td = ImageDraw.Draw(tile)
+    tile_fill = tuple(min(255, c + logo_tint) for c in t["card_bg"]) if not t["dark"] else \
+        tuple(min(255, c + 14) for c in t["card_bg"])
+    td.rounded_rectangle([(0, 0), (logo_box - 1, logo_box - 1)], radius=28,
+                         fill=tile_fill, outline=t["divider"] + (255,), width=1)
+    lx = (logo_box - ui_img.width) // 2
+    ly = (logo_box - ui_img.height) // 2
+    tile.paste(ui_img, (lx, ly), ui_img)
 
-    lines_info.append(("qr_gap", "", None))
-    lines_info.append(("qr", "", None))
+    # ---- QR block ----
+    qr_size = 132 if is_landscape else 150
+    qr_block = _make_qr_block(url, qr_size, t)
 
-    text_h = 0
-    for kind, _, _ in lines_info:
-        if kind == "gap_small": text_h += 12
-        elif kind == "gap_big": text_h += 24
-        elif kind == "qr_gap": text_h += 16
-        elif kind == "qr": text_h += qr_bh
-        elif kind == "caption": text_h += 26
-        elif kind == "body": text_h += 30
-        elif kind == "heading": text_h += 56
-    text_h -= 8
+    # ================= LANDSCAPE (split row) =================
+    if is_landscape:
+        # Left: logo centered in left 44%
+        left_w = int(card_w * 0.44)
+        tile_x = (left_w - logo_box) // 2
+        tile_y = (card_h - logo_box) // 2
+        card.paste(tile, (tile_x, tile_y), tile)
 
-    section_y = pad + (left_h - text_h) // 2 if not is_portrait else pad + uh + 40
-    draw_y = section_y
-    for kind, content, font in lines_info:
-        if kind == "heading" and font:
-            cd.text((right_x, draw_y), content, fill=t["text_primary"], font=font)
-            draw_y += 56
-        elif kind == "body" and font:
-            cd.text((right_x, draw_y), content, fill=t["text_secondary"], font=font)
-            draw_y += 30
-        elif kind == "caption" and font:
-            cd.text((right_x, draw_y), content, fill=t["text_secondary"], font=font)
-            draw_y += 26
-        elif kind == "gap_small": draw_y += 12
-        elif kind == "gap_big": draw_y += 24
-        elif kind == "qr_gap": draw_y += 16
-        elif kind == "qr":
-            qr_paste_x = right_x + (right_w - qr_bw) // 2
-            card.paste(qr_block, (qr_paste_x, draw_y - 2), qr_block)
-            draw_y += qr_bh
+        # vertical divider
+        cd.line([(left_w, pad), (left_w, card_h - pad)], fill=t["divider"], width=1)
 
-    # Decorative elements
-    cd.rectangle([(pad, card_h - pad - 1), (pad + 40, card_h - pad)], fill=t["accent"])
-    _draw_accent_dot(cd, card_w - pad, pad, t["accent"], 4)
-    _draw_accent_dot(cd, card_w - pad - 18, pad, t["accent_alt"], 3)
+        rx = left_w + pad
+        rw = card_w - rx - pad
+        # Measure content block height to vertically center
+        blocks = []
+        cur_y = 0
+        if brand or platform:
+            if brand:
+                blocks.append(("brand", brand, 26)); cur_y += 26
+            if platform:
+                blocks.append(("platform", _spaced(platform, 3), 22)); cur_y += 22
+            blocks.append(("gap", "", 20)); cur_y += 20
+        blocks.append(("badge", loc["badge"], 34)); cur_y += 34
+        name_lines = _wrap_text(cd, name, f_name, rw)
+        for nl in name_lines:
+            blocks.append(("name", nl, 58)); cur_y += 58
+        blocks.append(("gap", "", 6)); cur_y += 6
+        sub = subtitle or loc["default_subtitle"]
+        for sl in _wrap_text(cd, sub, f_sub, rw):
+            blocks.append(("sub", sl, 30)); cur_y += 30
+        blocks.append(("rule", "", 30)); cur_y += 30
+        footer_h = qr_block.size[1]
+        cur_y += 20 + footer_h
+
+        start_y = pad + (card_h - 2 * pad - cur_y) // 2
+        y = start_y
+        for kind, text, dy in blocks:
+            if kind == "brand":
+                cd.text((rx, y), text, font=f_brand, fill=t["text_primary"])
+            elif kind == "platform":
+                cd.text((rx, y), text, font=f_platform, fill=t["text_secondary"])
+            elif kind == "badge":
+                _draw_badge(cd, rx, y, text, f_badge, t)
+            elif kind == "name":
+                cd.text((rx, y), text, font=f_name, fill=t["text_primary"])
+            elif kind == "sub":
+                cd.text((rx, y), text, font=f_sub, fill=t["text_secondary"])
+            elif kind == "rule":
+                cd.line([(rx, y + 8), (rx + 64, y + 8)], fill=t["divider"], width=1)
+            y += dy
+        # footer: qr + text
+        y += 20
+        card.paste(qr_block, (rx, y), qr_block)
+        ftx = rx + qr_block.size[0] + 20
+        fty = y + (qr_block.size[1] - 42) // 2
+        cd.text((ftx, fty), _spaced(loc["scan_hint"], 2), font=f_hint, fill=t["text_secondary"])
+        cd.text((ftx, fty + 22), display_url, font=f_url, fill=t["accent"])
+
+    # ================= PORTRAIT / SQUARE (centered) =================
+    else:
+        cx = card_w // 2
+        y = pad
+        if brand:
+            _center_text(cd, cx, y, brand, f_brand, t["text_primary"]); y += 26
+        if platform:
+            _center_text(cd, cx, y, _spaced(platform, 3), f_platform, t["text_secondary"]); y += 24
+        if brand or platform:
+            y += 18
+
+        card.paste(tile, (cx - logo_box // 2, y), tile)
+        y += logo_box + 28
+
+        _center_badge(cd, cx, y, loc["badge"], f_badge, t); y += 34
+
+        for nl in _wrap_text(cd, name, f_name, card_w - 2 * pad):
+            _center_text(cd, cx, y, nl, f_name, t["text_primary"]); y += 62
+        y += 4
+        sub = subtitle or loc["default_subtitle"]
+        for sl in _wrap_text(cd, sub, f_sub, card_w - 2 * pad):
+            _center_text(cd, cx, y, sl, f_sub, t["text_secondary"]); y += 30
+        y += 24
+        cd.line([(cx - 50, y), (cx + 50, y)], fill=t["divider"], width=1)
+
+        # footer pinned near bottom, centered
+        fy = card_h - pad - qr_block.size[1]
+        total_fw = qr_block.size[0] + 22 + 240
+        fx = (card_w - total_fw) // 2
+        card.paste(qr_block, (fx, fy), qr_block)
+        ftx = fx + qr_block.size[0] + 22
+        fty = fy + (qr_block.size[1] - 42) // 2
+        cd.text((ftx, fty), _spaced(loc["scan_hint"], 2), font=f_hint, fill=t["text_secondary"])
+        cd.text((ftx, fty + 22), display_url, font=f_url, fill=t["accent"])
 
     # Shadow + paste
     card_with_shadow = _draw_shadow(card, CARD_RADIUS, t["shadow_color"], SHADOW_OFFSET, SHADOW_BLUR)
-    paste_x = card_x - SHADOW_BLUR
-    paste_y = card_y - SHADOW_BLUR
     canvas_rgba = canvas.convert("RGBA")
-    canvas_rgba.paste(card_with_shadow, (paste_x, paste_y), card_with_shadow)
-
-    canvas_draw = ImageDraw.Draw(canvas_rgba)
-    canvas_draw.rectangle([card_margin, ch - 1, cw - card_margin, ch], fill=t["divider"])
+    canvas_rgba.paste(card_with_shadow, (card_x - SHADOW_BLUR, card_y - SHADOW_BLUR), card_with_shadow)
 
     canvas_rgba.convert("RGB").save(output_path, "PNG", dpi=(300, 300))
     return True
+
+
+def _draw_badge(draw, x, y, text, font, t):
+    tw = draw.textlength(text, font=font)
+    draw.rounded_rectangle([(x, y), (x + tw + 28, y + 24)], radius=12,
+                           fill=None, outline=t["accent"], width=1)
+    draw.text((x + 14, y + 5), text, font=font, fill=t["accent"])
+
+
+def _center_text(draw, cx, y, text, font, fill):
+    tw = draw.textlength(text, font=font)
+    draw.text((cx - tw / 2, y), text, font=font, fill=fill)
+
+
+def _center_badge(draw, cx, y, text, font, t):
+    tw = draw.textlength(text, font=font)
+    x = cx - (tw + 28) / 2
+    draw.rounded_rectangle([(x, y), (x + tw + 28, y + 24)], radius=12,
+                           fill=None, outline=t["accent"], width=1)
+    draw.text((x + 14, y + 5), text, font=font, fill=t["accent"])
 
 
 # ================================================================
@@ -599,7 +683,8 @@ def _render_pillow(url, name, image_path, output_path, theme, fmt, subtitle, acc
 
 def generate_card(url, name, image_path, output_path="card.png",
                   theme="tech-innovation", subtitle="", accent_hex=None,
-                  fmt_name="landscape", renderer="auto"):
+                  fmt_name="landscape", renderer="auto",
+                  brand="", platform="", lang="en"):
     t = THEMES.get(theme, THEMES["tech-innovation"])
     fmt = FORMATS.get(fmt_name, FORMATS["landscape"])
 
@@ -609,13 +694,15 @@ def generate_card(url, name, image_path, output_path="card.png",
 
     # --- satori: delegate to Node.js (no fallback chain) ---
     if renderer == "satori":
-        ok = _render_satori(url, name, image_path, output_path, theme, fmt_name, subtitle, accent_hex)
+        ok = _render_satori(url, name, image_path, output_path, theme, fmt_name,
+                            subtitle, accent_hex, brand, platform, lang)
         if ok:
             print(f"[OK] Card saved -> {output_path}  "
                   f"(theme: {t['name']}, format: {fmt_name}, renderer: satori)")
             return
         print("[WARN] Satori renderer failed, falling back to Pillow...")
-        _render_pillow(url, name, image_path, output_path, t, fmt, subtitle, accent_hex)
+        _render_pillow(url, name, image_path, output_path, t, fmt,
+                       subtitle, accent_hex, brand, platform, lang)
         print(f"[OK] Card saved -> {output_path}  "
               f"(theme: {t['name']}, format: {fmt_name}, renderer: pillow)")
         return
@@ -627,7 +714,8 @@ def generate_card(url, name, image_path, output_path="card.png",
     if browser and renderer in ("html", "auto"):
         logo_b64 = _image_to_b64(image_path)
         qr_b64 = _generate_qr_b64(url)
-        html_str = _build_html(url, name, logo_b64, qr_b64, t, fmt, subtitle, accent_hex)
+        html_str = _build_html(url, name, logo_b64, qr_b64, t, fmt,
+                               subtitle, accent_hex, brand, platform, lang)
         ok = _render_html(browser, html_str, output_path, fmt["w"], fmt["h"])
         if ok:
             print(f"[OK] Card saved -> {output_path}  "
@@ -636,7 +724,8 @@ def generate_card(url, name, image_path, output_path="card.png",
             return
         print("[WARN] HTML render failed, falling back to Pillow...")
 
-    _render_pillow(url, name, image_path, output_path, t, fmt, subtitle, accent_hex)
+    _render_pillow(url, name, image_path, output_path, t, fmt,
+                   subtitle, accent_hex, brand, platform, lang)
     print(f"[OK] Card saved -> {output_path}  "
           f"(theme: {t['name']}, format: {fmt_name}, renderer: pillow)")
 
@@ -670,6 +759,10 @@ Available renderers: auto (default), html, pillow, satori
     parser.add_argument("--theme", choices=list(THEMES.keys()), default="tech-innovation")
     parser.add_argument("--subtitle", default="")
     parser.add_argument("--accent", default=None, help="Override accent color (hex)")
+    parser.add_argument("--brand", default="", help="Optional brand / company name (top of card)")
+    parser.add_argument("--platform", default="", help="Optional platform / tagline label")
+    parser.add_argument("--lang", choices=list(LOCALES.keys()), default="en",
+                        help="Copy language for badge / scan labels (default: en)")
     parser.add_argument("--format", choices=list(FORMATS.keys()), default="landscape",
                         help="Output format (default: landscape)")
     parser.add_argument("--renderer", choices=["auto", "html", "pillow", "satori"], default="auto",
@@ -681,6 +774,7 @@ Available renderers: auto (default), html, pillow, satori
         url=args.url, name=args.name, image_path=args.image,
         output_path=args.output, theme=args.theme, subtitle=args.subtitle,
         accent_hex=args.accent, fmt_name=args.format, renderer=args.renderer,
+        brand=args.brand, platform=args.platform, lang=args.lang,
     )
 
 

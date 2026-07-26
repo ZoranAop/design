@@ -1,6 +1,6 @@
 # Design
 
-Design-forward **digital business card** generator. Input a website URL, model name, and a reference UI screenshot — get back a polished, share-ready card with an embedded QR code that opens the URL.
+Clean, **international-style digital business card** generator. Input a website URL, model name, and a reference UI screenshot — get back a polished, share-ready card with an embedded QR code that opens the URL. Simple, focused layout: one hero name, generous whitespace, a single accent, optional brand labels, and `en`/`zh` copy.
 
 ## Architecture: skill → tool call → page generation
 
@@ -24,6 +24,8 @@ All 14 themes are defined once in **[`themes.json`](themes.json)** — the singl
 pip install -r card_generator/requirements.txt
 python card_generator/generate_card.py --url https://example.com --name "My Model" --image ui.png
 ```
+
+Add `--brand`, `--platform`, `--lang en|zh`, `--theme`, `--format`, or `--accent` to customize. See the docs below.
 
 ## Documentation
 

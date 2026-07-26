@@ -9,12 +9,12 @@ Themes are loaded from the shared **[`../themes.json`](../themes.json)** (single
 - **4 renderers**: `auto` (browser → Pillow fallback), `html` (force browser), `pillow` (force pure-Python), `satori` (delegates to Node.js)
 - **14 design themes**: 4 canvas-design philosophies + 10 theme-factory palettes (from `themes.json`)
 - **3 output formats**: landscape (1200×630), social (800×1280), square (1080×1080)
-- **QR code** with rounded corners and accent-colored border (scan → opens the URL)
-- **Glassmorphism, gradients, grid patterns, glow effects** (HTML renderer)
-- **Card-in-canvas layout** with soft drop shadow (Pillow renderer)
-- **Typography hierarchy** with automatic font fallback and text wrapping
+- **Clean international layout**: one hero name, generous whitespace, single accent rule + outlined badge, subtle shadow — no clutter
+- **Configurable branding**: optional `--brand` and `--platform` labels (hidden when omitted, so cards stay generic and reusable)
+- **Localized copy**: `--lang en|zh` drives all labels (badge / scan hint) from one unified table — never mixes languages
+- **QR code** with rounded corners (scan → opens the URL)
 - **Custom accent color** override via `--accent`
-- **Browser auto-detection**: Edge → Chrome → Pillow fallback
+- **Browser auto-detection**: Edge → Chrome → Pillow fallback (uses `--headless=new` + absolute output path)
 
 ## Install
 
@@ -32,21 +32,41 @@ For the `satori` renderer, ensure [Node.js](https://nodejs.org/) is installed an
 # Basic (auto renderer, default theme)
 python generate_card.py --url https://example.com --name "My Model" --image ui.png
 
-# Social media format with Tech Innovation theme
-python generate_card.py --url https://example.com --name "My Model" --image ui.png --theme tech-innovation --format social
+# Social media format with Tech Innovation theme + brand labels
+python generate_card.py --url https://example.com --name "My Model" --image ui.png \
+  --theme tech-innovation --format social --brand "Acme" --platform "AI Platform"
 
-# Satori renderer (delegates to Node.js), square format
-python generate_card.py --url https://example.com --name "My Model" --image ui.png --renderer satori --format square
+# Satori renderer (delegates to Node.js), square format, Chinese copy
+python generate_card.py --url https://example.com --name "My Model" --image ui.png \
+  --renderer satori --format square --lang zh
 
 # Force Pillow renderer (no browser needed)
 python generate_card.py --url https://example.com --name "My Model" --image ui.png --renderer pillow
 
 # Custom accent color + subtitle
-python generate_card.py --url https://example.com --name "My Model" --image ui.png --theme midnight-galaxy --subtitle "Now Available" --accent "#ff6b6b"
+python generate_card.py --url https://example.com --name "My Model" --image ui.png \
+  --theme midnight-galaxy --subtitle "Now Available" --accent "#ff6b6b"
 
 # Square format for Instagram
 python generate_card.py --url https://example.com --name "My Model" --image ui.png --format square
 ```
+
+## Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--url` | (required) | Target URL (QR destination) |
+| `--name` | (required) | Model / product name (the hero) |
+| `--image` | (required) | Logo / reference screenshot |
+| `--theme` | `tech-innovation` | Any key from `../themes.json` |
+| `--format` | `landscape` | `landscape` / `social` / `square` |
+| `--subtitle` | (locale default) | One-line descriptor under the name |
+| `--brand` | (hidden) | Optional company / brand name |
+| `--platform` | (hidden) | Optional platform / tagline label |
+| `--lang` | `en` | Label language: `en` or `zh` |
+| `--accent` | (theme default) | Override accent color (hex) |
+| `--renderer` | `auto` | `auto` / `html` / `pillow` / `satori` |
+| `--output` | `card.png` | Output image path |
 
 ## Renderers
 

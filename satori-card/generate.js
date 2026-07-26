@@ -21,9 +21,10 @@
  *   node generate.js --url https://example.com --name "Kimi K3" --image logo.png --type square
  */
 
-import { readFileSync, writeFileSync } from "fs";
-import { resolve, basename, dirname } from "path";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { resolve, basename, dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { execFileSync } from "child_process";
 import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
 import QRCode from "qrcode";
@@ -100,11 +101,13 @@ const models = parseModels(modelsArg);
 const LOCALES = {
   en: { badge: "NEW RELEASE", scanHint: "SCAN TO VISIT", defaultSubtitle: "Now Available" },
   zh: { badge: "全新发布", scanHint: "扫码访问", defaultSubtitle: "现已上线" },
+  "zh-Hant": { badge: "全新發佈", scanHint: "掃碼訪問", defaultSubtitle: "現已上線" },
+  ja: { badge: "新登場", scanHint: "スキャンして開く", defaultSubtitle: "提供開始" },
 };
 const L = LOCALES[lang] || LOCALES.en;
 
 if (!url || !name || !imagePath) {
-  console.error("Usage: node generate.js --url <URL> --name <Name> --image <path> [--type social|social-multi|landscape|square] [--theme tech] [--subtitle text] [--f1 feature] [--f2 feature] [--f3 feature] [--models \"Sol|desc, Luna|desc, Terra|desc\"] [--accent #hex] [--brand text] [--platform text] [--lang en|zh] [--output card.png]");
+  console.error("Usage: node generate.js --url <URL> --name <Name> --image <path> [--type social|social-multi|landscape|square] [--theme tech] [--subtitle text] [--f1 feature] [--f2 feature] [--f3 feature] [--models \"Sol|desc, Luna|desc, Terra|desc\"] [--accent #hex] [--brand text] [--platform text] [--lang en|zh|zh-Hant|ja] [--output card.png]");
   process.exit(1);
 }
 
@@ -136,6 +139,28 @@ function loadFont(file) {
   }
 }
 
+// Satori (opentype.js) cannot read .ttc collections. For Japanese kana (and as a
+// nicer CJK fallback) we extract a single .ttf from a system .ttc once, caching
+// it in .fonts/ (gitignored). Requires Python + fontTools; degrades gracefully.
+const cacheDir = join(__dirname, ".fonts");
+const extractScript = join(__dirname, "extract_font.py");
+function ensureExtracted(ttcName, outName, fontNumber = 0) {
+  const out = join(cacheDir, outName);
+  if (existsSync(out)) return out;
+  const ttc = fontDir + ttcName;
+  if (!existsSync(ttc)) return null;
+  try {
+    if (!existsSync(cacheDir)) mkdirSync(cacheDir, { recursive: true });
+    execFileSync("python", [extractScript, ttc, out, String(fontNumber)], { stdio: "ignore" });
+    return existsSync(out) ? out : null;
+  } catch { return null; }
+}
+function loadExtracted(ttcName, outName, fontNumber = 0) {
+  const p = ensureExtracted(ttcName, outName, fontNumber);
+  if (!p) return null;
+  try { return readFileSync(p); } catch { return null; }
+}
+
 const fonts = [];
 const segoeUI = loadFont("segoeui.ttf");
 const segoeUIBold = loadFont("segoeuib.ttf");
@@ -149,7 +174,25 @@ if (segoeUILight) fonts.push({ name: "Segoe UI", data: segoeUILight, weight: 300
 if (simhei) fonts.push({ name: "SimHei", data: simhei, weight: 400, style: "normal" });
 if (deng && !simhei) fonts.push({ name: "DengXian", data: deng, weight: 400, style: "normal" });
 
-const FF = `"Segoe UI", "SimHei", "DengXian", Arial, sans-serif`;
+// Japanese: Yu Gothic has kana that SimHei lacks. Extract from YuGoth*.ttc.
+if (lang === "ja") {
+  const yuR = loadExtracted("YuGothR.ttc", "YuGothic-Regular.ttf", 0);
+  const yuB = loadExtracted("YuGothB.ttc", "YuGothic-Bold.ttf", 0);
+  if (yuR) fonts.push({ name: "Yu Gothic", data: yuR, weight: 400, style: "normal" });
+  if (yuB) fonts.push({ name: "Yu Gothic", data: yuB, weight: 700, style: "normal" });
+  if (!yuR && !yuB) console.error("[WARN] Japanese font (Yu Gothic) unavailable; kana may not render. Ensure Python + fontTools and YuGoth*.ttc exist.");
+}
+
+// Traditional Chinese: prefer Microsoft JhengHei (extracted); SimHei covers most.
+if (lang === "zh-Hant") {
+  const jh = loadExtracted("msjh.ttc", "MSJhengHei-Regular.ttf", 0);
+  const jhB = loadExtracted("msjhbd.ttc", "MSJhengHei-Bold.ttf", 0);
+  if (jh) fonts.push({ name: "JhengHei", data: jh, weight: 400, style: "normal" });
+  if (jhB) fonts.push({ name: "JhengHei", data: jhB, weight: 700, style: "normal" });
+}
+
+// Font-family stack; CJK families are appended so glyphs resolve per language.
+const FF = `"Segoe UI", "Yu Gothic", "JhengHei", "SimHei", "DengXian", Arial, sans-serif`;
 
 // ============================================================
 //  HELPERS

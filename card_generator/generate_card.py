@@ -102,6 +102,18 @@ LOCALES = {
         "scan_label": "扫一扫",
         "default_subtitle": "现已上线",
     },
+    "zh-Hant": {
+        "badge": "全新發佈",
+        "scan_hint": "掃碼訪問",
+        "scan_label": "掃一掃",
+        "default_subtitle": "現已上線",
+    },
+    "ja": {
+        "badge": "新登場",
+        "scan_hint": "スキャンして開く",
+        "scan_label": "スキャン",
+        "default_subtitle": "提供開始",
+    },
 }
 
 

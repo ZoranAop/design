@@ -11,7 +11,7 @@ Themes are loaded from the shared **[`../themes.json`](../themes.json)** (single
 - **3 output formats**: landscape (1200×630), social (800×1280), square (1080×1080)
 - **Clean international layout**: one hero name, generous whitespace, single accent rule + outlined badge, subtle shadow — no clutter
 - **Configurable branding**: optional `--brand` and `--platform` labels (hidden when omitted, so cards stay generic and reusable)
-- **Localized copy**: `--lang en|zh` drives all labels (badge / scan hint) from one unified table — never mixes languages
+- **Localized copy**: `--lang en|zh|zh-Hant|ja` drives all labels (badge / scan hint) from one unified table — never mixes languages
 - **QR code** with rounded corners (scan → opens the URL)
 - **Custom accent color** override via `--accent`
 - **Browser auto-detection**: Edge → Chrome → Pillow fallback (uses `--headless=new` + absolute output path)
@@ -65,7 +65,7 @@ python generate_card.py --url https://example.com --name "My Model" --image ui.p
 | `--platform` | (hidden) | Optional platform / tagline label |
 | `--f1` `--f2` `--f3` | (hidden) | Feature bullets (social / square layouts) |
 | `--models` | (none) | Multi-model list for `social-multi`: `"Name\|desc, …"` (satori-only) |
-| `--lang` | `en` | Label language: `en` or `zh` |
+| `--lang` | `en` | Label language: `en` / `zh` / `zh-Hant` / `ja` |
 | `--accent` | (theme default) | Override accent color (hex) |
 | `--renderer` | `auto` | `auto` / `html` / `pillow` / `satori` |
 | `--output` | `card.png` | Output image path |

@@ -77,7 +77,7 @@ global product launch pages and app-store cards:
 - **A single accent.** One thin accent rule + one small outlined badge; the theme accent color is used sparingly.
 - **Clear hierarchy.** Optional brand line → logo → badge → name → subtitle → divider → QR + URL.
 - **Neutral, legible type.** Segoe UI / Inter with CJK fallback; tight letter-spacing on the name only.
-- **Unified copy per card.** All labels come from one locale (`--lang en|zh`); never mix languages.
+- **Unified copy per card.** All labels come from one locale (`--lang en|zh|zh-Hant|ja`); never mix languages.
 
 ## How to invoke (tool call)
 
@@ -116,7 +116,7 @@ python card_generator/generate_card.py --url https://example.com --name "My Mode
 | `--platform` | (hidden) | Optional platform / tagline label |
 | `--f1` `--f2` `--f3` | (hidden) | Feature bullets (social / square layouts) |
 | `--models` | (none) | Multi-model list for `social-multi`: `"Name\|desc, …"` (satori-only) |
-| `--lang` | `en` | Copy language for labels: `en` or `zh` |
+| `--lang` | `en` | Copy language for labels: `en` / `zh` / `zh-Hant` / `ja` |
 | `--accent` | (theme default) | Override accent color (hex) |
 | `--renderer` | `auto` | `auto` / `html` / `pillow` / `satori` |
 | `--output` | `card.png` | Output image path |
@@ -142,6 +142,10 @@ node generate.js --url https://example.com --name "Kimi K3" --image logo.png \
 > **Note:** the `html` renderer uses `--headless=new` and writes to an absolute
 > output path (older builds silently failed with a relative path). All three
 > renderers now share the same clean, international layout.
+
+> **CJK fonts (satori):** `--lang en|zh` work out of the box. For `--lang ja` and
+> `--lang zh-Hant`, the satori renderer extracts a `.ttf` from the system `.ttc`
+> once (needs `pip install fonttools`) and caches it in `satori-card/.fonts/`.
 
 ## Design optimization: querying other skills
 

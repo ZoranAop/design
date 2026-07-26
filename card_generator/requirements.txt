@@ -1,2 +1,5 @@
 Pillow>=10.0.0
 qrcode[pil]>=7.4.2
+# Optional: only needed by the satori renderer for --lang ja / zh-Hant
+# (extracts a .ttf from system .ttc fonts). Safe to omit for en / zh.
+fonttools>=4.0.0

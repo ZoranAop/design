@@ -12,6 +12,22 @@ npm install
 
 Requires [Node.js](https://nodejs.org/) ≥ 18.
 
+### Fonts (CJK)
+
+Satori (opentype.js) cannot read `.ttc` collections, and Windows ships its
+Japanese / Traditional-Chinese fonts only as `.ttc`. For `--lang ja` and
+`--lang zh-Hant`, this renderer extracts a single `.ttf` from the system
+collection **once** (via `extract_font.py`) and caches it in `.fonts/`
+(gitignored). This requires **Python + fontTools**:
+
+```bash
+pip install fonttools
+```
+
+`--lang en` and `--lang zh` work out of the box (Segoe UI + SimHei). If Python
+or the source fonts are missing, other languages still render but Japanese kana
+may fall back to tofu boxes.
+
 ## Usage
 
 ```bash
@@ -34,6 +50,13 @@ node generate.js --url https://platform.ope.ai/market --name "GPT-5.6" --image l
 
 # Custom accent color
 node generate.js --url https://example.com --name "Kimi K3" --image logo.png --theme midnight-galaxy --accent "#ff6b6b"
+
+# Localized copy: Japanese / Traditional Chinese (needs fontTools; see Fonts above)
+node generate.js --url https://platform.ope.ai/market --name "Kimi K3" --image logo.png \
+  --type social --theme x-dark --lang ja --subtitle "より賢く、より速い推論"
+node generate.js --url https://platform.ope.ai/market --name "GPT-5.6" --image logo.png \
+  --type social-multi --theme light-editorial --lang zh-Hant \
+  --models "Sol|日常推理的均衡旗艦, Luna|即時應用的輕量高速版, Terra|長上下文深度推理"
 ```
 
 ## Options
@@ -48,7 +71,7 @@ node generate.js --url https://example.com --name "Kimi K3" --image logo.png --t
 | `--subtitle` | (locale default) | Subtitle line under the name          |
 | `--brand`    | (hidden)         | Optional company / brand name         |
 | `--platform` | (hidden)         | Optional platform / tagline label     |
-| `--lang`     | `en`             | Label language: `en` or `zh`          |
+| `--lang`     | `en`             | Label language: `en` / `zh` / `zh-Hant` / `ja` |
 | `--f1` `--f2` `--f3` | (defaults) | Feature bullets (social layout only) |
 | `--models`   | (none)           | `social-multi` list: `"Name\|desc, Name\|desc, ..."` |
 | `--accent`   | (theme default)  | Override accent color (hex)          |

@@ -166,7 +166,10 @@ function socialCard({ name, subtitle, displayUrl, qrDataURI, feature1, feature2,
   if (features.length === 0) features.push("Model Marketplace", "API & SDK Access", "Production Ready");
 
   const cardW = canvasW - cardMargin * 2;
-  const innerPad = 48;
+  const innerPad = 56;
+  const isX = themeName === "x-dark";
+  // X style shows the wordmark logo across the top; otherwise a centered logo tile.
+  const logoTop = isX;
 
   return {
     type: "div",
@@ -185,98 +188,71 @@ function socialCard({ name, subtitle, displayUrl, qrDataURI, feature1, feature2,
               width: `${cardW}px`, height: `${canvasH - cardMargin * 2}px`,
               background: t.cardBg, borderRadius: "28px", overflow: "hidden",
               boxShadow: `0 16px 64px ${isDark ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.08)"}`,
+              border: isX ? `1px solid ${t.divider}` : "none",
+              padding: `${innerPad}px`, boxSizing: "border-box",
             },
             children: [
-              // --- Hero section ---
+              // --- Top brand row: horizontal wordmark logo ---
               {
                 type: "div",
                 props: {
                   style: {
-                    display: "flex", flexDirection: "column",
-                    alignItems: "center", justifyContent: "center",
-                    width: "100%", height: "38%",
-                    background: `linear-gradient(180deg, ${t.heroBg} 0%, ${t.cardBg} 100%)`,
-                    padding: "48px 48px 24px 48px", boxSizing: "border-box",
+                    display: "flex", flexDirection: "row", alignItems: "center",
+                    width: "100%", marginBottom: "8px",
                   },
                   children: [
-                    // thin accent rule
-                    { type: "div", props: { style: { width: "48px", height: "2px", background: t.accent, borderRadius: "1px", marginBottom: "36px" } } },
-                    // logo container �?clean, subtle
-                    {
-                      type: "div",
-                      props: {
-                        style: {
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          width: "160px", height: "160px",
-                          background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-                          borderRadius: "36px", padding: "32px", boxSizing: "border-box",
-                          border: `1px solid ${t.divider}`,
-                        },
-                        children: [{ type: "img", props: { src: logoURI, style: { maxWidth: "100%", maxHeight: "100%", objectFit: "contain" } } }],
-                      },
-                    },
-                    // platform label �?clean, no spaced-out chars (optional)
-                    ...(platform ? [{ type: "div", props: { style: { fontSize: "13px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "4px", marginTop: "28px" }, children: platform } }] : []),
-                    ...(brand ? [{ type: "div", props: { style: { fontSize: "18px", fontWeight: 600, color: t.text, fontFamily: FF, marginTop: platform ? "6px" : "28px" }, children: brand } }] : []),
+                    { type: "img", props: { src: logoURI, style: { height: "44px", objectFit: "contain" } } },
+                    { type: "div", props: { style: { flex: 1 } } },
+                    ...(platform ? [{ type: "div", props: { style: { fontSize: "13px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2px" }, children: platform } }] : []),
                   ],
                 },
               },
-              // --- Content section ---
+              // thin divider under brand row
+              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginTop: "20px", marginBottom: "40px" } } },
+              // --- Hero: badge + name + subtitle (compact, left-aligned) ---
+              { type: "div", props: { style: { display: "flex", alignItems: "center", justifyContent: "center", padding: "6px 16px", background: `${t.accent}1a`, border: `1px solid ${t.accent}66`, borderRadius: "100px", marginBottom: "22px" }, children: [{ type: "div", props: { style: { fontSize: "12px", fontWeight: 700, color: t.accent, fontFamily: FF, letterSpacing: "1.5px" }, children: L.badge } }] } },
+              { type: "div", props: { style: { fontSize: "72px", fontWeight: 800, color: t.text, fontFamily: FF, lineHeight: 1.05, letterSpacing: "-2px" }, children: name } },
+              { type: "div", props: { style: { fontSize: "22px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "14px", lineHeight: 1.4 }, children: subtitle || L.defaultSubtitle } },
+              // --- Feature bullets (compact) ---
               {
                 type: "div",
                 props: {
-                  style: {
-                    display: "flex", flexDirection: "column", alignItems: "center",
-                    width: "100%", flex: 1,
-                    padding: `0 ${innerPad}px ${innerPad}px ${innerPad}px`, boxSizing: "border-box",
-                  },
+                  style: { display: "flex", flexDirection: "column", width: "100%", marginTop: "36px" },
+                  children: features.map((f, i) => ({
+                    type: "div",
+                    props: {
+                      style: { display: "flex", flexDirection: "row", alignItems: "center", marginBottom: i < features.length - 1 ? "16px" : "0" },
+                      children: [
+                        { type: "div", props: { style: { display: "flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "13px", background: `${t.accent}1a`, marginRight: "14px", flexShrink: 0 }, children: [{ type: "div", props: { style: { width: "7px", height: "7px", borderRadius: "4px", background: t.accent } } }] } },
+                        { type: "div", props: { style: { fontSize: "18px", fontWeight: 500, color: t.text, fontFamily: FF, letterSpacing: "0.2px" }, children: f } },
+                      ],
+                    },
+                  })),
+                },
+              },
+              // spacer pushes footer down, but hero stays top-anchored
+              { type: "div", props: { style: { display: "flex", flex: 1, minHeight: "24px" } } },
+              // --- Footer: QR + CTA/URL ---
+              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginBottom: "28px" } } },
+              {
+                type: "div",
+                props: {
+                  style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%" },
                   children: [
-                    // subtle outline badge
-                    { type: "div", props: { style: { display: "flex", alignItems: "center", justifyContent: "center", padding: "5px 16px", background: `${t.accent}1a`, border: `1px solid ${t.accent}66`, borderRadius: "100px", marginBottom: "20px" }, children: [{ type: "div", props: { style: { fontSize: "11px", fontWeight: 700, color: t.accent, fontFamily: FF, letterSpacing: "2px" }, children: L.badge } }] } },
-                    // name
-                    { type: "div", props: { style: { fontSize: "48px", fontWeight: 700, color: t.text, fontFamily: FF, lineHeight: 1.1, letterSpacing: "-1.5px", textAlign: "center" }, children: name } },
-                    // subtitle
-                    ...(subtitle ? [{ type: "div", props: { style: { fontSize: "19px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "10px", textAlign: "center", letterSpacing: "0.2px" }, children: subtitle } }] : []),
-                    // thin divider
-                    { type: "div", props: { style: { width: "100px", height: "1px", background: t.divider, marginTop: "32px", marginBottom: "32px" } } },
-                    // features
-                    ...features.map((f, i) => ({
-                      type: "div",
-                      props: {
-                        style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "center", marginBottom: i < features.length - 1 ? "14px" : "0" },
-                        children: [
-                          { type: "div", props: { style: { width: "5px", height: "5px", borderRadius: "3px", background: t.accent, marginRight: "14px", flexShrink: 0 } } },
-                          { type: "div", props: { style: { fontSize: "16px", fontWeight: 400, color: t.textSec, fontFamily: FF, letterSpacing: "0.3px" }, children: f } },
-                        ],
-                      },
-                    })),
-                    // spacer
-                    { type: "div", props: { style: { flex: 1 } } },
-                    // --- QR footer (horizontal: QR left, CTA + URL right) ---
                     {
                       type: "div",
                       props: {
-                        style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: "24px" },
+                        style: { display: "flex", alignItems: "center", justifyContent: "center", width: "124px", height: "124px", background: "#ffffff", borderRadius: "16px", overflow: "hidden", padding: "8px", boxSizing: "border-box", flexShrink: 0, marginRight: "24px" },
+                        children: [{ type: "img", props: { src: qrDataURI, style: { width: "100%", height: "100%" } } }],
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: { display: "flex", flexDirection: "column", flex: 1 },
                         children: [
-                          // QR
-                          {
-                            type: "div",
-                            props: {
-                              style: { display: "flex", alignItems: "center", justifyContent: "center", width: "120px", height: "120px", background: "#ffffff", borderRadius: "16px", overflow: "hidden", padding: "8px", boxSizing: "border-box", border: `1px solid ${t.divider}`, flexShrink: 0, marginRight: "20px" },
-                              children: [{ type: "img", props: { src: qrDataURI, style: { width: "100%", height: "100%" } } }],
-                            },
-                          },
-                          // CTA + URL
-                          {
-                            type: "div",
-                            props: {
-                              style: { display: "flex", flexDirection: "column", flex: 1 },
-                              children: [
-                                { type: "div", props: { style: { fontSize: "11px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2px", marginBottom: "8px" }, children: L.scanHint } },
-                                { type: "div", props: { style: { fontSize: "15px", fontWeight: 500, color: t.accent, fontFamily: FF }, children: displayUrl } },
-                              ],
-                            },
-                          },
+                          { type: "div", props: { style: { fontSize: "12px", fontWeight: 700, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2px", marginBottom: "10px" }, children: L.scanHint } },
+                          { type: "div", props: { style: { fontSize: "17px", fontWeight: 600, color: t.accent, fontFamily: FF }, children: displayUrl } },
                         ],
                       },
                     },

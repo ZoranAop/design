@@ -7,7 +7,7 @@ Themes are loaded from the shared **[`../themes.json`](../themes.json)** (single
 ## Features
 
 - **4 renderers**: `auto` (browser → Pillow fallback), `html` (force browser), `pillow` (force pure-Python), `satori` (delegates to Node.js)
-- **14 design themes**: 4 canvas-design philosophies + 10 theme-factory palettes (from `themes.json`)
+- **15 design themes**: 4 canvas-design philosophies + 10 theme-factory palettes + 1 X/Twitter dark social style (from `themes.json`)
 - **3 output formats**: landscape (1200×630), social (800×1280), square (1080×1080)
 - **Clean international layout**: one hero name, generous whitespace, single accent rule + outlined badge, subtle shadow — no clutter
 - **Configurable branding**: optional `--brand` and `--platform` labels (hidden when omitted, so cards stay generic and reusable)
@@ -80,7 +80,7 @@ python generate_card.py --url https://example.com --name "My Model" --image ui.p
 
 ## Themes & formats
 
-See [`../themes.json`](../themes.json) for the full, authoritative list of 14 themes and 3 formats. Both are defined there once and consumed by this script and the Satori renderer.
+See [`../themes.json`](../themes.json) for the full, authoritative list of 15 themes and 3 formats. Both are defined there once and consumed by this script and the Satori renderer.
 
 ## Credits
 

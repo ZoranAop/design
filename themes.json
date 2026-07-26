@@ -187,6 +187,19 @@
       },
       "shadow": { "r": 45, "g": 74, "b": 45, "a": 25 },
       "ui_radius": 14, "qr_radius": 14
+    },
+    "x-dark": {
+      "name": "X Dark",
+      "category": "social",
+      "mood": "X / Twitter pure-black, high contrast, blue accent",
+      "dark": true,
+      "colors": {
+        "canvas_bg": "#000000", "card_bg": "#000000",
+        "text_primary": "#e7e9ea", "text_secondary": "#71767b",
+        "accent": "#1d9bf0", "accent_alt": "#1a8cd8", "divider": "#2f3336"
+      },
+      "shadow": { "r": 0, "g": 0, "b": 0, "a": 0 },
+      "ui_radius": 16, "qr_radius": 16
     }
   }
 }

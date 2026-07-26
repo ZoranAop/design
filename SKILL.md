@@ -1,6 +1,6 @@
 ---
 name: digital-business-card
-description: Generate a clean, international-style digital business card with an embedded QR code from a URL. Use when the user wants to create a shareable card image that links to a website, model page, or product page. Produces landscape / social / square PNG cards with 14 design themes, optional brand/platform labels, and en/zh copy. Can query canvas-design, brand-guidelines, and theme-factory skills for design optimization.
+description: Generate a clean, international-style digital business card with an embedded QR code from a URL. Use when the user wants to create a shareable card image that links to a website, model page, or product page. Produces landscape / social / square PNG cards with 15 design themes (including an X / Twitter dark style), optional brand/platform labels, and en/zh copy. Can query canvas-design, brand-guidelines, and theme-factory skills for design optimization.
 ---
 
 # Digital Business Card Skill
@@ -38,10 +38,11 @@ card_generator/generate_card.py   ──(Python, the primary "tool call" layer)
 
 ## Shared theme source
 
-All 14 themes live in **`themes.json`** at the repo root — the single source of truth loaded by both the Python and Node.js renderers. Do not duplicate theme values in code. To add or tweak a theme, edit `themes.json` once and both renderers pick it up.
+All 15 themes live in **`themes.json`** at the repo root — the single source of truth loaded by both the Python and Node.js renderers. Do not duplicate theme values in code. To add or tweak a theme, edit `themes.json` once and both renderers pick it up.
 
 - 4 **canvas-design** philosophies: `minimal`, `tech`, `organic`, `bold`
 - 10 **theme-factory** palettes: `tech-innovation`, `midnight-galaxy`, `ocean-depths`, `sunset-boulevard`, `forest-canopy`, `modern-minimalist`, `golden-hour`, `arctic-frost`, `desert-rose`, `botanical-garden`
+- 1 **social** style: `x-dark` (X / Twitter pure-black, high-contrast, blue accent; the `social` format shows a top wordmark logo)
 
 ## Design principles (international, minimal, focused)
 

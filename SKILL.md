@@ -90,6 +90,7 @@ python card_generator/generate_card.py --url https://example.com --name "My Mode
 | `--subtitle` | (locale default) | One-line descriptor under the name |
 | `--brand` | (hidden) | Optional company / brand name |
 | `--platform` | (hidden) | Optional platform / tagline label |
+| `--f1` `--f2` `--f3` | (hidden) | Feature bullets (social / square layouts) |
 | `--lang` | `en` | Copy language for labels: `en` or `zh` |
 | `--accent` | (theme default) | Override accent color (hex) |
 | `--renderer` | `auto` | `auto` / `html` / `pillow` / `satori` |

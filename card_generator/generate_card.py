@@ -204,7 +204,7 @@ def find_browser():
 
 
 def _build_html(url, name, logo_b64, qr_b64, theme, fmt, subtitle, accent_hex,
-                brand="", platform="", lang="en"):
+                brand="", platform="", lang="en", features=None):
     """Clean, international, minimal card. Generous whitespace, one accent rule,
     clear hierarchy, subtle shadow. Layout adapts to landscape / social / square."""
     t = dict(theme)
@@ -212,6 +212,7 @@ def _build_html(url, name, logo_b64, qr_b64, theme, fmt, subtitle, accent_hex,
         t["accent"] = _hex_to_rgb(accent_hex)
 
     loc = _loc(lang)
+    features = [f for f in (features or []) if f][:3]
     w, h = fmt["w"], fmt["h"]
     is_portrait = h > w
     is_square = h == w
@@ -240,6 +241,14 @@ def _build_html(url, name, logo_b64, qr_b64, theme, fmt, subtitle, accent_hex,
         p = f'<div class="platform">{platform}</div>' if platform else ""
         brand_html = f'<div class="brandblock">{b}{p}</div>'
 
+    # Optional feature bullets (portrait/square only)
+    features_html = ""
+    if features:
+        items = "".join(
+            f'<div class="feat"><span class="feat-dot"></span>{f}</div>' for f in features
+        )
+        features_html = f'<div class="features">{items}</div>'
+
     # Layout: portrait/square = vertical centered; landscape = split row
     if is_portrait or is_square:
         body = f"""
@@ -249,6 +258,7 @@ def _build_html(url, name, logo_b64, qr_b64, theme, fmt, subtitle, accent_hex,
   <div class="name">{name}</div>
   <div class="subtitle">{subtitle or loc['default_subtitle']}</div>
   <div class="rule"></div>
+  {features_html}
   <div class="spacer"></div>
   <div class="footer">
     <div class="qr-wrap"><img src="data:image/png;base64,{qr_b64}" alt="QR"></div>
@@ -323,6 +333,9 @@ body {{
 }}
 .subtitle {{ font-size:{sub_size}px; font-weight:400; color:{text_sec_hex}; margin-top:12px; {name_align} }}
 .rule {{ width:{'100px' if (is_portrait or is_square) else '64px'}; height:1px; background:{divider_hex}; margin-top:28px; }}
+.features {{ display:flex; flex-direction:column; align-items:center; gap:14px; margin-top:28px; }}
+.feat {{ display:flex; align-items:center; font-size:16px; font-weight:400; color:{text_sec_hex}; letter-spacing:0.3px; }}
+.feat-dot {{ width:5px; height:5px; border-radius:3px; background:{accent_hex_val}; margin-right:14px; }}
 .spacer {{ flex:1; }}
 .footer {{ display:flex; {footer_layout} margin-top:28px; width:100%; }}
 .qr-wrap {{
@@ -395,7 +408,7 @@ _SATORI_SCRIPT = os.path.normpath(os.path.join(_HERE, "..", "satori-card", "gene
 
 
 def _render_satori(url, name, image_path, output_path, theme, fmt_name, subtitle, accent_hex,
-                   brand="", platform="", lang="en"):
+                   brand="", platform="", lang="en", features=None):
     """Invoke the Node.js satori renderer as a subprocess. Returns True on success."""
     if not shutil.which("node"):
         print("[WARN] Node.js not found on PATH; cannot use satori renderer.")
@@ -416,6 +429,10 @@ def _render_satori(url, name, image_path, output_path, theme, fmt_name, subtitle
         cmd += ["--brand", brand]
     if platform:
         cmd += ["--platform", platform]
+    # Feature bullets (social layout only); passed through as --f1/--f2/--f3.
+    for i, feat in enumerate((features or [])[:3], start=1):
+        if feat:
+            cmd += [f"--f{i}", feat]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
@@ -496,11 +513,12 @@ def _wrap_text(draw, text, font, max_w):
 
 
 def _render_pillow(url, name, image_path, output_path, theme, fmt, subtitle, accent_hex,
-                   brand="", platform="", lang="en"):
+                   brand="", platform="", lang="en", features=None):
     t = dict(theme)
     if accent_hex:
         t["accent"] = _hex_to_rgb(accent_hex)
     loc = _loc(lang)
+    features = [f for f in (features or []) if f][:3]
 
     cw, ch = fmt["w"], fmt["h"]
     is_landscape = cw > ch
@@ -636,8 +654,20 @@ def _render_pillow(url, name, image_path, output_path, theme, fmt, subtitle, acc
             _center_text(cd, cx, y, sl, f_sub, t["text_secondary"]); y += 30
         y += 24
         cd.line([(cx - 50, y), (cx + 50, y)], fill=t["divider"], width=1)
+        y += 24
 
-        # footer pinned near bottom, centered
+        # optional feature bullets (centered)
+        if features:
+            f_feat = _resolve_font(16)
+            dot_r = 3
+            for feat in features:
+                fw = cd.textlength(feat, font=f_feat)
+                total = fw + 14 + dot_r * 2
+                start_x = cx - total / 2
+                cd.ellipse([(start_x, y + 8), (start_x + dot_r * 2, y + 8 + dot_r * 2)],
+                           fill=t["accent"])
+                cd.text((start_x + dot_r * 2 + 14, y), feat, font=f_feat, fill=t["text_secondary"])
+                y += 28
         fy = card_h - pad - qr_block.size[1]
         total_fw = qr_block.size[0] + 22 + 240
         fx = (card_w - total_fw) // 2
@@ -684,9 +714,10 @@ def _center_badge(draw, cx, y, text, font, t):
 def generate_card(url, name, image_path, output_path="card.png",
                   theme="tech-innovation", subtitle="", accent_hex=None,
                   fmt_name="landscape", renderer="auto",
-                  brand="", platform="", lang="en"):
+                  brand="", platform="", lang="en", features=None):
     t = THEMES.get(theme, THEMES["tech-innovation"])
     fmt = FORMATS.get(fmt_name, FORMATS["landscape"])
+    features = [f for f in (features or []) if f]
 
     if not os.path.exists(image_path):
         print(f"[ERROR] Image not found: {image_path}")
@@ -695,14 +726,14 @@ def generate_card(url, name, image_path, output_path="card.png",
     # --- satori: delegate to Node.js (no fallback chain) ---
     if renderer == "satori":
         ok = _render_satori(url, name, image_path, output_path, theme, fmt_name,
-                            subtitle, accent_hex, brand, platform, lang)
+                            subtitle, accent_hex, brand, platform, lang, features)
         if ok:
             print(f"[OK] Card saved -> {output_path}  "
                   f"(theme: {t['name']}, format: {fmt_name}, renderer: satori)")
             return
         print("[WARN] Satori renderer failed, falling back to Pillow...")
         _render_pillow(url, name, image_path, output_path, t, fmt,
-                       subtitle, accent_hex, brand, platform, lang)
+                       subtitle, accent_hex, brand, platform, lang, features)
         print(f"[OK] Card saved -> {output_path}  "
               f"(theme: {t['name']}, format: {fmt_name}, renderer: pillow)")
         return
@@ -715,7 +746,7 @@ def generate_card(url, name, image_path, output_path="card.png",
         logo_b64 = _image_to_b64(image_path)
         qr_b64 = _generate_qr_b64(url)
         html_str = _build_html(url, name, logo_b64, qr_b64, t, fmt,
-                               subtitle, accent_hex, brand, platform, lang)
+                               subtitle, accent_hex, brand, platform, lang, features)
         ok = _render_html(browser, html_str, output_path, fmt["w"], fmt["h"])
         if ok:
             print(f"[OK] Card saved -> {output_path}  "
@@ -725,7 +756,7 @@ def generate_card(url, name, image_path, output_path="card.png",
         print("[WARN] HTML render failed, falling back to Pillow...")
 
     _render_pillow(url, name, image_path, output_path, t, fmt,
-                   subtitle, accent_hex, brand, platform, lang)
+                   subtitle, accent_hex, brand, platform, lang, features)
     print(f"[OK] Card saved -> {output_path}  "
           f"(theme: {t['name']}, format: {fmt_name}, renderer: pillow)")
 
@@ -763,6 +794,9 @@ Available renderers: auto (default), html, pillow, satori
     parser.add_argument("--platform", default="", help="Optional platform / tagline label")
     parser.add_argument("--lang", choices=list(LOCALES.keys()), default="en",
                         help="Copy language for badge / scan labels (default: en)")
+    parser.add_argument("--f1", default="", help="Feature bullet 1 (social/square layout)")
+    parser.add_argument("--f2", default="", help="Feature bullet 2 (social/square layout)")
+    parser.add_argument("--f3", default="", help="Feature bullet 3 (social/square layout)")
     parser.add_argument("--format", choices=list(FORMATS.keys()), default="landscape",
                         help="Output format (default: landscape)")
     parser.add_argument("--renderer", choices=["auto", "html", "pillow", "satori"], default="auto",
@@ -775,6 +809,7 @@ Available renderers: auto (default), html, pillow, satori
         output_path=args.output, theme=args.theme, subtitle=args.subtitle,
         accent_hex=args.accent, fmt_name=args.format, renderer=args.renderer,
         brand=args.brand, platform=args.platform, lang=args.lang,
+        features=[args.f1, args.f2, args.f3],
     )
 
 

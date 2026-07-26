@@ -198,42 +198,47 @@ function socialCard({ name, subtitle, displayUrl, qrDataURI, feature1, feature2,
                 props: {
                   style: {
                     display: "flex", flexDirection: "row", alignItems: "center",
-                    width: "100%", marginBottom: "8px",
+                    width: "100%",
                   },
                   children: [
-                    { type: "img", props: { src: logoURI, style: { height: "44px", objectFit: "contain" } } },
+                    { type: "img", props: { src: logoURI, style: { height: "42px", objectFit: "contain" } } },
                     { type: "div", props: { style: { flex: 1 } } },
                     ...(platform ? [{ type: "div", props: { style: { fontSize: "13px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2px" }, children: platform } }] : []),
                   ],
                 },
               },
               // thin divider under brand row
-              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginTop: "20px", marginBottom: "40px" } } },
-              // --- Hero: badge + name + subtitle (compact, left-aligned) ---
-              { type: "div", props: { style: { display: "flex", alignItems: "center", justifyContent: "center", padding: "6px 16px", background: `${t.accent}1a`, border: `1px solid ${t.accent}66`, borderRadius: "100px", marginBottom: "22px" }, children: [{ type: "div", props: { style: { fontSize: "12px", fontWeight: 700, color: t.accent, fontFamily: FF, letterSpacing: "1.5px" }, children: L.badge } }] } },
-              { type: "div", props: { style: { fontSize: "72px", fontWeight: 800, color: t.text, fontFamily: FF, lineHeight: 1.05, letterSpacing: "-2px" }, children: name } },
-              { type: "div", props: { style: { fontSize: "22px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "14px", lineHeight: 1.4 }, children: subtitle || L.defaultSubtitle } },
-              // --- Feature bullets (compact) ---
+              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginTop: "20px" } } },
+
+              // top spacer — balances vertical whitespace
+              { type: "div", props: { style: { display: "flex", flex: 1 } } },
+
+              // --- Hero: name + subtitle + feature bullets (vertically centered) ---
+              { type: "div", props: { style: { fontSize: "84px", fontWeight: 800, color: t.text, fontFamily: FF, lineHeight: 1.0, letterSpacing: "-3px" }, children: name } },
+              { type: "div", props: { style: { fontSize: "23px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "18px", lineHeight: 1.45 }, children: subtitle || L.defaultSubtitle } },
+              // feature bullets (compact)
               {
                 type: "div",
                 props: {
-                  style: { display: "flex", flexDirection: "column", width: "100%", marginTop: "36px" },
+                  style: { display: "flex", flexDirection: "column", width: "100%", marginTop: "34px" },
                   children: features.map((f, i) => ({
                     type: "div",
                     props: {
-                      style: { display: "flex", flexDirection: "row", alignItems: "center", marginBottom: i < features.length - 1 ? "16px" : "0" },
+                      style: { display: "flex", flexDirection: "row", alignItems: "center", marginBottom: i < features.length - 1 ? "18px" : "0" },
                       children: [
-                        { type: "div", props: { style: { display: "flex", alignItems: "center", justifyContent: "center", width: "26px", height: "26px", borderRadius: "13px", background: `${t.accent}1a`, marginRight: "14px", flexShrink: 0 }, children: [{ type: "div", props: { style: { width: "7px", height: "7px", borderRadius: "4px", background: t.accent } } }] } },
-                        { type: "div", props: { style: { fontSize: "18px", fontWeight: 500, color: t.text, fontFamily: FF, letterSpacing: "0.2px" }, children: f } },
+                        { type: "div", props: { style: { display: "flex", alignItems: "center", justifyContent: "center", width: "28px", height: "28px", borderRadius: "14px", background: `${t.accent}1a`, marginRight: "16px", flexShrink: 0 }, children: [{ type: "div", props: { style: { width: "8px", height: "8px", borderRadius: "4px", background: t.accent } } }] } },
+                        { type: "div", props: { style: { fontSize: "19px", fontWeight: 500, color: t.text, fontFamily: FF, letterSpacing: "0.2px" }, children: f } },
                       ],
                     },
                   })),
                 },
               },
-              // spacer pushes footer down, but hero stays top-anchored
-              { type: "div", props: { style: { display: "flex", flex: 1, minHeight: "24px" } } },
+
+              // bottom spacer — balances vertical whitespace
+              { type: "div", props: { style: { display: "flex", flex: 1 } } },
+
               // --- Footer: QR + CTA/URL ---
-              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginBottom: "28px" } } },
+              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginBottom: "26px" } } },
               {
                 type: "div",
                 props: {

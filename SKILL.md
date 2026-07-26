@@ -1,6 +1,6 @@
 ---
 name: digital-business-card
-description: Generate a clean, international-style digital business card with an embedded QR code from a URL. Use when the user wants to create a shareable card image that links to a website, model page, or product page. Produces landscape / social / square PNG cards with 15 design themes (including an X / Twitter dark style), optional brand/platform labels, and en/zh copy. Can query canvas-design, brand-guidelines, and theme-factory skills for design optimization.
+description: Generate a clean, international-style digital business card with an embedded QR code from a URL. Use when the user wants to create a shareable card image that links to a website, model page, or product page. Produces landscape / social / social-multi / square PNG cards with 16 design themes (including X / Twitter dark and light Western-editorial styles), optional brand/platform labels, a reusable multi-model template, and en/zh copy. Can query canvas-design, brand-guidelines, and theme-factory skills for design optimization.
 ---
 
 # Digital Business Card Skill
@@ -38,11 +38,34 @@ card_generator/generate_card.py   ──(Python, the primary "tool call" layer)
 
 ## Shared theme source
 
-All 15 themes live in **`themes.json`** at the repo root — the single source of truth loaded by both the Python and Node.js renderers. Do not duplicate theme values in code. To add or tweak a theme, edit `themes.json` once and both renderers pick it up.
+All 16 themes live in **`themes.json`** at the repo root — the single source of truth loaded by both the Python and Node.js renderers. Do not duplicate theme values in code. To add or tweak a theme, edit `themes.json` once and both renderers pick it up.
 
 - 4 **canvas-design** philosophies: `minimal`, `tech`, `organic`, `bold`
 - 10 **theme-factory** palettes: `tech-innovation`, `midnight-galaxy`, `ocean-depths`, `sunset-boulevard`, `forest-canopy`, `modern-minimalist`, `golden-hour`, `arctic-frost`, `desert-rose`, `botanical-garden`
-- 1 **social** style: `x-dark` (X / Twitter pure-black, high-contrast, blue accent; the `social` format shows a top wordmark logo)
+- 2 **social** styles: `x-dark` (X / Twitter pure-black, blue accent) and `light-editorial` (Western launch-page, warm-white, indigo accent). Both pair well with the `social` and `social-multi` formats and show a top wordmark logo.
+
+## Multi-model launch template (`social-multi`)
+
+When **several models launch at once** (e.g. a `GPT-5.6` family with `Sol`, `Luna`,
+`Terra` variants), use the **`social-multi`** format — a reusable, relatively fixed
+template in the X / Western-editorial style:
+
+```
+[ wordmark logo ................... PLATFORM ]
+ ─────────────────────────────────────────────
+ GPT-5.6                          ← series hero (--name)
+ Three specialized models. One family.  ← subtitle
+ ┌ 1 ┐ GPT-5.6-Sol   Balanced flagship …   ← model row-cards
+ ┌ 2 ┐ Luna          Fast & lightweight …
+ ┌ 3 ┐ Terra         Deep reasoning …
+ ─────────────────────────────────────────────
+ [QR]  SCAN TO VISIT / platform.ope.ai/market
+```
+
+- `--name` = the **series** name (hero). `--models "Name|desc, Name|desc, …"` = the variants.
+- Each model becomes a row-card: index chip + name + one-line description. 2–4 models fit cleanly.
+- Recommended themes: `--theme x-dark` (pure-black X style) or `--theme light-editorial` (light Western style).
+- Implemented in the **satori** renderer only; the Python entrypoint auto-switches to satori for this format.
 
 ## Design principles (international, minimal, focused)
 
@@ -84,14 +107,15 @@ python card_generator/generate_card.py --url https://example.com --name "My Mode
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--url` | (required) | Target URL (QR code destination) |
-| `--name` | (required) | Model / product name (the hero) |
+| `--name` | (required) | Model / product / series name (the hero) |
 | `--image` | (required) | Logo / reference screenshot |
 | `--theme` | `tech-innovation` | Any key from `themes.json` |
-| `--format` | `landscape` | `landscape` / `social` / `square` |
+| `--format` | `landscape` | `landscape` / `social` / `social-multi` / `square` |
 | `--subtitle` | (locale default) | One-line descriptor under the name |
 | `--brand` | (hidden) | Optional company / brand name |
 | `--platform` | (hidden) | Optional platform / tagline label |
 | `--f1` `--f2` `--f3` | (hidden) | Feature bullets (social / square layouts) |
+| `--models` | (none) | Multi-model list for `social-multi`: `"Name\|desc, …"` (satori-only) |
 | `--lang` | `en` | Copy language for labels: `en` or `zh` |
 | `--accent` | (theme default) | Override accent color (hex) |
 | `--renderer` | `auto` | `auto` / `html` / `pillow` / `satori` |

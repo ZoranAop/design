@@ -408,7 +408,7 @@ _SATORI_SCRIPT = os.path.normpath(os.path.join(_HERE, "..", "satori-card", "gene
 
 
 def _render_satori(url, name, image_path, output_path, theme, fmt_name, subtitle, accent_hex,
-                   brand="", platform="", lang="en", features=None):
+                   brand="", platform="", lang="en", features=None, models=""):
     """Invoke the Node.js satori renderer as a subprocess. Returns True on success."""
     if not shutil.which("node"):
         print("[WARN] Node.js not found on PATH; cannot use satori renderer.")
@@ -429,6 +429,8 @@ def _render_satori(url, name, image_path, output_path, theme, fmt_name, subtitle
         cmd += ["--brand", brand]
     if platform:
         cmd += ["--platform", platform]
+    if models:
+        cmd += ["--models", models]
     # Feature bullets (social layout only); passed through as --f1/--f2/--f3.
     for i, feat in enumerate((features or [])[:3], start=1):
         if feat:
@@ -714,23 +716,33 @@ def _center_badge(draw, cx, y, text, font, t):
 def generate_card(url, name, image_path, output_path="card.png",
                   theme="tech-innovation", subtitle="", accent_hex=None,
                   fmt_name="landscape", renderer="auto",
-                  brand="", platform="", lang="en", features=None):
+                  brand="", platform="", lang="en", features=None, models=""):
     t = THEMES.get(theme, THEMES["tech-innovation"])
-    fmt = FORMATS.get(fmt_name, FORMATS["landscape"])
+    # social-multi shares the social (portrait) canvas and is satori-only.
+    is_multi = fmt_name == "social-multi"
+    fmt = FORMATS.get("social" if is_multi else fmt_name, FORMATS["landscape"])
     features = [f for f in (features or []) if f]
 
     if not os.path.exists(image_path):
         print(f"[ERROR] Image not found: {image_path}")
         sys.exit(1)
 
+    # The multi-model template is implemented only in the satori renderer.
+    if is_multi and renderer != "satori":
+        print("[INFO] format 'social-multi' is satori-only; switching renderer to satori.")
+        renderer = "satori"
+
     # --- satori: delegate to Node.js (no fallback chain) ---
     if renderer == "satori":
         ok = _render_satori(url, name, image_path, output_path, theme, fmt_name,
-                            subtitle, accent_hex, brand, platform, lang, features)
+                            subtitle, accent_hex, brand, platform, lang, features, models)
         if ok:
             print(f"[OK] Card saved -> {output_path}  "
                   f"(theme: {t['name']}, format: {fmt_name}, renderer: satori)")
             return
+        if is_multi:
+            print("[ERROR] Satori failed and no fallback exists for social-multi.")
+            sys.exit(1)
         print("[WARN] Satori renderer failed, falling back to Pillow...")
         _render_pillow(url, name, image_path, output_path, t, fmt,
                        subtitle, accent_hex, brand, platform, lang, features)
@@ -797,8 +809,10 @@ Available renderers: auto (default), html, pillow, satori
     parser.add_argument("--f1", default="", help="Feature bullet 1 (social/square layout)")
     parser.add_argument("--f2", default="", help="Feature bullet 2 (social/square layout)")
     parser.add_argument("--f3", default="", help="Feature bullet 3 (social/square layout)")
-    parser.add_argument("--format", choices=list(FORMATS.keys()), default="landscape",
-                        help="Output format (default: landscape)")
+    parser.add_argument("--models", default="",
+                        help='Multi-model list for social-multi, e.g. "Sol|desc, Luna|desc, Terra|desc" (satori-only)')
+    parser.add_argument("--format", choices=list(FORMATS.keys()) + ["social-multi"], default="landscape",
+                        help="Output format (default: landscape). 'social-multi' = multi-model template (satori-only)")
     parser.add_argument("--renderer", choices=["auto", "html", "pillow", "satori"], default="auto",
                         help="Rendering engine (default: auto)")
 
@@ -809,7 +823,7 @@ Available renderers: auto (default), html, pillow, satori
         output_path=args.output, theme=args.theme, subtitle=args.subtitle,
         accent_hex=args.accent, fmt_name=args.format, renderer=args.renderer,
         brand=args.brand, platform=args.platform, lang=args.lang,
-        features=[args.f1, args.f2, args.f3],
+        features=[args.f1, args.f2, args.f3], models=args.models,
     )
 
 

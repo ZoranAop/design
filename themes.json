@@ -200,6 +200,19 @@
       },
       "shadow": { "r": 0, "g": 0, "b": 0, "a": 0 },
       "ui_radius": 16, "qr_radius": 16
+    },
+    "light-editorial": {
+      "name": "Light Editorial",
+      "category": "social",
+      "mood": "Western editorial / launch page, warm-white, indigo accent",
+      "dark": false,
+      "colors": {
+        "canvas_bg": "#f7f7f5", "card_bg": "#ffffff",
+        "text_primary": "#0f1115", "text_secondary": "#6b7280",
+        "accent": "#4f46e5", "accent_alt": "#6366f1", "divider": "#e6e7eb"
+      },
+      "shadow": { "r": 15, "g": 17, "b": 21, "a": 22 },
+      "ui_radius": 16, "qr_radius": 16
     }
   }
 }

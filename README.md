@@ -16,7 +16,7 @@ card_generator/generate_card.py   ← tool call layer (Python, primary)
 *.png                             ← page generation layer (output card image)
 ```
 
-All 15 themes are defined once in **[`themes.json`](themes.json)** — the single source of truth loaded by both renderers.
+All 16 themes are defined once in **[`themes.json`](themes.json)** — the single source of truth loaded by both renderers.
 
 ## Quick start
 

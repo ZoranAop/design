@@ -83,7 +83,18 @@ const accentOverride = getArg("--accent") || "";
 const brand = getArg("--brand") || "";
 const platform = getArg("--platform") || "";
 const lang = getArg("--lang") || "en";
+const modelsArg = getArg("--models") || "";
 const outputPath = getArg("--output") || "card.png";
+
+// Parse --models "Name|desc, Name|desc, ..." into [{name, desc}, ...]
+function parseModels(s) {
+  if (!s) return [];
+  return s.split(/\s*,\s*/).filter(Boolean).map((item) => {
+    const [n, ...rest] = item.split("|");
+    return { name: (n || "").trim(), desc: rest.join("|").trim() };
+  }).filter((m) => m.name);
+}
+const models = parseModels(modelsArg);
 
 // Unified per-card copy (international default = en).
 const LOCALES = {
@@ -93,7 +104,7 @@ const LOCALES = {
 const L = LOCALES[lang] || LOCALES.en;
 
 if (!url || !name || !imagePath) {
-  console.error("Usage: node generate.js --url <URL> --name <Name> --image <path> [--type social|landscape|square] [--theme tech] [--subtitle text] [--f1 feature] [--f2 feature] [--f3 feature] [--accent #hex] [--brand text] [--platform text] [--lang en|zh] [--output card.png]");
+  console.error("Usage: node generate.js --url <URL> --name <Name> --image <path> [--type social|social-multi|landscape|square] [--theme tech] [--subtitle text] [--f1 feature] [--f2 feature] [--f3 feature] [--models \"Sol|desc, Luna|desc, Terra|desc\"] [--accent #hex] [--brand text] [--platform text] [--lang en|zh] [--output card.png]");
   process.exit(1);
 }
 
@@ -103,13 +114,16 @@ const theme = { ...THEMES[themeName] || THEMES["tech-innovation"] };
 if (accentOverride) theme.accent = accentOverride;
 
 const isDark = theme.dark;
+const isMulti = type === "social-multi";
 const isSocial = type === "social";
 const isSquare = type === "square";
 
-const fmt = FORMATS[type] || FORMATS.landscape;
+// social-multi shares the social (portrait) canvas dimensions.
+const fmtKey = isMulti ? "social" : type;
+const fmt = FORMATS[fmtKey] || FORMATS.landscape;
 const canvasW = fmt.w;
 const canvasH = fmt.h;
-const cardMargin = isSocial ? 20 : 24;
+const cardMargin = (isSocial || isMulti) ? 20 : 24;
 
 // ============================================================
 //  FONT LOADING
@@ -273,6 +287,139 @@ function socialCard({ name, subtitle, displayUrl, qrDataURI, feature1, feature2,
 }
 
 // ============================================================
+//  SOCIAL MULTI-MODEL LAYOUT  (vertical row-cards, X / editorial)
+//  Reusable template: fill --name (series) + --models "Name|desc,...".
+// ============================================================
+
+function multiCard({ name, subtitle, displayUrl, qrDataURI, models }) {
+  const t = theme;
+  const list = (models && models.length) ? models : [
+    { name: "Model A", desc: "Balanced general-purpose model" },
+    { name: "Model B", desc: "Fast, lightweight, low latency" },
+    { name: "Model C", desc: "Deep reasoning, long context" },
+  ];
+  const cardW = canvasW - cardMargin * 2;
+  const innerPad = 56;
+  const rowGap = list.length >= 4 ? 14 : 18;
+
+  const modelRow = (m, i) => ({
+    type: "div",
+    props: {
+      style: {
+        display: "flex", flexDirection: "row", alignItems: "center", width: "100%",
+        padding: "20px 22px", marginBottom: i < list.length - 1 ? `${rowGap}px` : "0",
+        background: isDark ? "rgba(255,255,255,0.04)" : "rgba(15,17,21,0.03)",
+        border: `1px solid ${t.divider}`, borderRadius: "18px", boxSizing: "border-box",
+      },
+      children: [
+        // index chip
+        {
+          type: "div",
+          props: {
+            style: {
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: "40px", height: "40px", borderRadius: "12px", flexShrink: 0, marginRight: "18px",
+              background: `${t.accent}1a`, border: `1px solid ${t.accent}55`,
+            },
+            children: [{ type: "div", props: { style: { fontSize: "17px", fontWeight: 800, color: t.accent, fontFamily: FF }, children: String(i + 1) } }],
+          },
+        },
+        // name + desc
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", flex: 1 },
+            children: [
+              { type: "div", props: { style: { fontSize: "26px", fontWeight: 700, color: t.text, fontFamily: FF, letterSpacing: "-0.5px", lineHeight: 1.15 }, children: m.name } },
+              ...(m.desc ? [{ type: "div", props: { style: { fontSize: "16px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "4px", lineHeight: 1.35 }, children: m.desc } }] : []),
+            ],
+          },
+        },
+      ],
+    },
+  });
+
+  return {
+    type: "div",
+    props: {
+      style: {
+        display: "flex", width: "100%", height: "100%",
+        background: t.bg, padding: `${cardMargin}px`, boxSizing: "border-box",
+        alignItems: "center", justifyContent: "center",
+      },
+      children: [
+        {
+          type: "div",
+          props: {
+            style: {
+              display: "flex", flexDirection: "column",
+              width: `${cardW}px`, height: `${canvasH - cardMargin * 2}px`,
+              background: t.cardBg, borderRadius: "28px", overflow: "hidden",
+              boxShadow: isDark ? "none" : `0 24px 70px rgba(15,17,21,0.10)`,
+              border: `1px solid ${t.divider}`,
+              padding: `${innerPad}px`, boxSizing: "border-box",
+            },
+            children: [
+              // --- Top brand row ---
+              {
+                type: "div",
+                props: {
+                  style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%" },
+                  children: [
+                    { type: "img", props: { src: logoURI, style: { height: "40px", objectFit: "contain" } } },
+                    { type: "div", props: { style: { flex: 1 } } },
+                    ...(platform ? [{ type: "div", props: { style: { fontSize: "13px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2px" }, children: platform } }] : []),
+                  ],
+                },
+              },
+              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginTop: "20px" } } },
+
+              // --- Series hero ---
+              { type: "div", props: { style: { fontSize: "64px", fontWeight: 800, color: t.text, fontFamily: FF, lineHeight: 1.0, letterSpacing: "-2px", marginTop: "34px" }, children: name } },
+              { type: "div", props: { style: { fontSize: "21px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "14px", lineHeight: 1.4 }, children: subtitle || `${list.length} models. One family.` } },
+
+              // --- Model row-cards ---
+              { type: "div", props: { style: { display: "flex", flexDirection: "column", width: "100%", marginTop: "34px" }, children: list.map(modelRow) } },
+
+              // spacer
+              { type: "div", props: { style: { display: "flex", flex: 1, minHeight: "20px" } } },
+
+              // --- Footer: QR + CTA ---
+              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginBottom: "24px" } } },
+              {
+                type: "div",
+                props: {
+                  style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%" },
+                  children: [
+                    {
+                      type: "div",
+                      props: {
+                        style: { display: "flex", alignItems: "center", justifyContent: "center", width: "118px", height: "118px", background: "#ffffff", borderRadius: "16px", overflow: "hidden", padding: "8px", boxSizing: "border-box", flexShrink: 0, marginRight: "24px", border: `1px solid ${t.divider}` },
+                        children: [{ type: "img", props: { src: qrDataURI, style: { width: "100%", height: "100%" } } }],
+                      },
+                    },
+                    {
+                      type: "div",
+                      props: {
+                        style: { display: "flex", flexDirection: "column", flex: 1 },
+                        children: [
+                          { type: "div", props: { style: { fontSize: "12px", fontWeight: 700, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2px", marginBottom: "10px" }, children: L.scanHint } },
+                          { type: "div", props: { style: { fontSize: "17px", fontWeight: 600, color: t.accent, fontFamily: FF }, children: displayUrl } },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  };
+}
+
+// ============================================================
 //  SQUARE LAYOUT (1:1, centered)
 // ============================================================
 
@@ -392,7 +539,9 @@ async function main() {
   const qrDataURI = await generateQR(url);
   const displayUrl = url.replace("https://", "").replace("http://", "").replace(/\/$/, "");
 
-  const layout = isSocial
+  const layout = isMulti
+    ? multiCard({ name, subtitle, displayUrl, qrDataURI, models })
+    : isSocial
     ? socialCard({ name, subtitle, displayUrl, qrDataURI, feature1, feature2, feature3 })
     : isSquare
     ? squareCard({ name, subtitle, displayUrl, qrDataURI })

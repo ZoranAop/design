@@ -292,16 +292,16 @@ function multiCard({ name, subtitle, displayUrl, qrDataURI, models }) {
   ];
   const cardW = canvasW - cardMargin * 2;
   const innerPad = 56;
-  const rowGap = list.length >= 4 ? 14 : 18;
+  const rowGap = list.length >= 4 ? 18 : 24;
 
   const modelRow = (m, i) => ({
     type: "div",
     props: {
       style: {
         display: "flex", flexDirection: "row", alignItems: "center", width: "100%",
-        padding: "22px 24px", marginBottom: i < list.length - 1 ? `${rowGap}px` : "0",
+        padding: "26px 26px", marginBottom: i < list.length - 1 ? `${rowGap}px` : "0",
         background: isDark ? "rgba(255,255,255,0.04)" : "rgba(15,17,21,0.03)",
-        border: `1px solid ${t.divider}`, borderRadius: "18px", boxSizing: "border-box",
+        border: `1px solid ${t.divider}`, borderRadius: "20px", boxSizing: "border-box",
       },
       children: [
         // index chip
@@ -310,10 +310,10 @@ function multiCard({ name, subtitle, displayUrl, qrDataURI, models }) {
           props: {
             style: {
               display: "flex", alignItems: "center", justifyContent: "center",
-              width: "40px", height: "40px", borderRadius: "12px", flexShrink: 0, marginRight: "18px",
+              width: "48px", height: "48px", borderRadius: "14px", flexShrink: 0, marginRight: "20px",
               background: `${t.accent}1a`, border: `1px solid ${t.accent}55`,
             },
-            children: [{ type: "div", props: { style: { fontSize: "17px", fontWeight: 800, color: t.accent, fontFamily: FF }, children: String(i + 1) } }],
+            children: [{ type: "div", props: { style: { fontSize: "19px", fontWeight: 800, color: t.accent, fontFamily: FF }, children: String(i + 1) } }],
           },
         },
         // name + desc
@@ -322,8 +322,8 @@ function multiCard({ name, subtitle, displayUrl, qrDataURI, models }) {
           props: {
             style: { display: "flex", flexDirection: "column", flex: 1 },
             children: [
-              { type: "div", props: { style: { fontSize: "26px", fontWeight: 700, color: t.text, fontFamily: FF, letterSpacing: "-0.5px", lineHeight: 1.15 }, children: m.name } },
-              ...(m.desc ? [{ type: "div", props: { style: { fontSize: "16px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "4px", lineHeight: 1.35 }, children: m.desc } }] : []),
+              { type: "div", props: { style: { fontSize: "28px", fontWeight: 700, color: t.text, fontFamily: FF, letterSpacing: "-0.5px", lineHeight: 1.15 }, children: m.name } },
+              ...(m.desc ? [{ type: "div", props: { style: { fontSize: "17px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "5px", lineHeight: 1.35 }, children: m.desc } }] : []),
             ],
           },
         },
@@ -344,7 +344,7 @@ function multiCard({ name, subtitle, displayUrl, qrDataURI, models }) {
           type: "div",
           props: {
             style: {
-              display: "flex", flexDirection: "column",
+              display: "flex", flexDirection: "column", justifyContent: "space-between",
               width: `${cardW}px`, height: `${canvasH - cardMargin * 2}px`,
               background: t.cardBg, borderRadius: "28px", overflow: "hidden",
               boxShadow: isDark ? "none" : `0 24px 70px rgba(15,17,21,0.10)`,
@@ -352,38 +352,48 @@ function multiCard({ name, subtitle, displayUrl, qrDataURI, models }) {
               padding: `${innerPad}px`, boxSizing: "border-box",
             },
             children: [
-              // --- Top brand row ---
+              // --- Group 1: brand row + divider ---
               {
                 type: "div",
                 props: {
-                  style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%" },
+                  style: { display: "flex", flexDirection: "column", width: "100%" },
                   children: [
-                    { type: "img", props: { src: logoURI, style: { height: "40px", objectFit: "contain" } } },
-                    { type: "div", props: { style: { flex: 1 } } },
-                    ...(platform ? [{ type: "div", props: { style: { fontSize: "13px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2px" }, children: platform } }] : []),
+                    {
+                      type: "div",
+                      props: {
+                        style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%" },
+                        children: [
+                          { type: "img", props: { src: logoURI, style: { height: "40px", objectFit: "contain" } } },
+                          { type: "div", props: { style: { flex: 1 } } },
+                          ...(platform ? [{ type: "div", props: { style: { fontSize: "13px", fontWeight: 600, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2px" }, children: platform } }] : []),
+                        ],
+                      },
+                    },
+                    { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginTop: "20px" } } },
                   ],
                 },
               },
-              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginTop: "20px" } } },
 
-              // --- Series hero ---
-              { type: "div", props: { style: { fontSize: "64px", fontWeight: 800, color: t.text, fontFamily: FF, lineHeight: 1.0, letterSpacing: "-2px", marginTop: "30px" }, children: name } },
-              { type: "div", props: { style: { fontSize: "21px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "14px", lineHeight: 1.4 }, children: subtitle || `${list.length} models. One family.` } },
+              // --- Group 2: hero + model list (natural height; space-between centers it) ---
+              {
+                type: "div",
+                props: {
+                  style: { display: "flex", flexDirection: "column", width: "100%" },
+                  children: [
+                    { type: "div", props: { style: { fontSize: "74px", fontWeight: 800, color: t.text, fontFamily: FF, lineHeight: 1.0, letterSpacing: "-2.5px" }, children: name } },
+                    { type: "div", props: { style: { fontSize: "22px", fontWeight: 400, color: t.textSec, fontFamily: FF, marginTop: "16px", lineHeight: 1.4 }, children: subtitle || `${list.length} models. One family.` } },
+                    { type: "div", props: { style: { display: "flex", flexDirection: "column", width: "100%", marginTop: "42px" }, children: list.map(modelRow) } },
+                  ],
+                },
+              },
 
-              // --- Model row-cards ---
-              { type: "div", props: { style: { display: "flex", flexDirection: "column", width: "100%", marginTop: "30px" }, children: list.map(modelRow) } },
-
-              // spacer
-              { type: "div", props: { style: { display: "flex", flex: 1, minHeight: "20px" } } },
-
-              // --- Footer: centered QR + CTA (X / editorial style) ---
-              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginBottom: "30px" } } },
+              // --- Group 3: footer divider + centered QR + CTA ---
               {
                 type: "div",
                 props: {
                   style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" },
                   children: [
-                    // enlarged, centered QR
+                    { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginBottom: "32px" } } },
                     {
                       type: "div",
                       props: {
@@ -391,9 +401,7 @@ function multiCard({ name, subtitle, displayUrl, qrDataURI, models }) {
                         children: [{ type: "img", props: { src: qrDataURI, style: { width: "100%", height: "100%" } } }],
                       },
                     },
-                    // scan hint
                     { type: "div", props: { style: { fontSize: "13px", fontWeight: 700, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2.5px", marginTop: "20px" }, children: L.scanHint } },
-                    // url
                     { type: "div", props: { style: { fontSize: "19px", fontWeight: 600, color: t.accent, fontFamily: FF, marginTop: "8px" }, children: displayUrl } },
                   ],
                 },

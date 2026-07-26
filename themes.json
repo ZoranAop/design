@@ -1,0 +1,192 @@
+{
+  "_comment": "Single source of truth for design themes. Loaded by both card_generator/generate_card.py (Python) and satori-card/generate.js (Node.js). Colors are hex strings; shadow is RGBA 0-255.",
+  "formats": {
+    "landscape": { "w": 1200, "h": 630,  "use": "OG image / link preview" },
+    "social":    { "w": 800,  "h": 1280, "use": "WeChat Moments / social sharing" },
+    "square":    { "w": 1080, "h": 1080, "use": "Instagram feed (1:1)" }
+  },
+  "themes": {
+    "minimal": {
+      "name": "Geometric Silence",
+      "category": "canvas-design",
+      "mood": "Swiss formalism, generous white space",
+      "dark": false,
+      "colors": {
+        "canvas_bg": "#f2f1ee", "card_bg": "#ffffff",
+        "text_primary": "#141413", "text_secondary": "#827d73",
+        "accent": "#8c9c76", "accent_alt": "#b0aea5", "divider": "#e8e6dc"
+      },
+      "shadow": { "r": 0, "g": 0, "b": 0, "a": 40 },
+      "ui_radius": 16, "qr_radius": 14
+    },
+    "tech": {
+      "name": "Chromatic Systems",
+      "category": "canvas-design",
+      "mood": "Digital precision, data-vis aesthetic",
+      "dark": true,
+      "colors": {
+        "canvas_bg": "#0a0c14", "card_bg": "#141823",
+        "text_primary": "#ebf0f8", "text_secondary": "#788296",
+        "accent": "#58a6ff", "accent_alt": "#3fb950", "divider": "#282e3a"
+      },
+      "shadow": { "r": 0, "g": 0, "b": 0, "a": 80 },
+      "ui_radius": 12, "qr_radius": 12
+    },
+    "organic": {
+      "name": "Natural Clustering",
+      "category": "canvas-design",
+      "mood": "Warm earth tones, rounded forms",
+      "dark": false,
+      "colors": {
+        "canvas_bg": "#f2ece1", "card_bg": "#fffcf5",
+        "text_primary": "#32281e", "text_secondary": "#8c735a",
+        "accent": "#d97757", "accent_alt": "#788c5d", "divider": "#e6dccd"
+      },
+      "shadow": { "r": 60, "g": 40, "b": 20, "a": 30 },
+      "ui_radius": 20, "qr_radius": 16
+    },
+    "bold": {
+      "name": "Concrete Poetry",
+      "category": "canvas-design",
+      "mood": "Monumental geometry, poster energy",
+      "dark": true,
+      "colors": {
+        "canvas_bg": "#0e0e0e", "card_bg": "#181818",
+        "text_primary": "#fcfaf5", "text_secondary": "#b4afa5",
+        "accent": "#e67d50", "accent_alt": "#6a9bcc", "divider": "#32302d"
+      },
+      "shadow": { "r": 0, "g": 0, "b": 0, "a": 100 },
+      "ui_radius": 8, "qr_radius": 8
+    },
+    "tech-innovation": {
+      "name": "Tech Innovation",
+      "category": "theme-factory",
+      "mood": "Bold modern tech, AI/ML launches",
+      "dark": true,
+      "colors": {
+        "canvas_bg": "#0a1117", "card_bg": "#141e28",
+        "text_primary": "#ffffff", "text_secondary": "#8b949e",
+        "accent": "#0066ff", "accent_alt": "#00ffff", "divider": "#30343d"
+      },
+      "shadow": { "r": 0, "g": 0, "b": 0, "a": 80 },
+      "ui_radius": 12, "qr_radius": 12
+    },
+    "midnight-galaxy": {
+      "name": "Midnight Galaxy",
+      "category": "theme-factory",
+      "mood": "Dramatic cosmic deep tones",
+      "dark": true,
+      "colors": {
+        "canvas_bg": "#1a0f2e", "card_bg": "#2b1e3e",
+        "text_primary": "#e6e6fa", "text_secondary": "#a490c2",
+        "accent": "#4a4e8f", "accent_alt": "#a490c2", "divider": "#3d2f5c"
+      },
+      "shadow": { "r": 0, "g": 0, "b": 0, "a": 80 },
+      "ui_radius": 10, "qr_radius": 12
+    },
+    "ocean-depths": {
+      "name": "Ocean Depths",
+      "category": "theme-factory",
+      "mood": "Calming maritime",
+      "dark": true,
+      "colors": {
+        "canvas_bg": "#0d1b2a", "card_bg": "#1b4965",
+        "text_primary": "#cae9ff", "text_secondary": "#5fa8d3",
+        "accent": "#5fa8d3", "accent_alt": "#1b4965", "divider": "#1b3a5c"
+      },
+      "shadow": { "r": 0, "g": 0, "b": 0, "a": 60 },
+      "ui_radius": 10, "qr_radius": 12
+    },
+    "sunset-boulevard": {
+      "name": "Sunset Boulevard",
+      "category": "theme-factory",
+      "mood": "Warm vibrant sunset",
+      "dark": false,
+      "colors": {
+        "canvas_bg": "#fff5e6", "card_bg": "#fffaf0",
+        "text_primary": "#5c2e0e", "text_secondary": "#c2410c",
+        "accent": "#ff6b35", "accent_alt": "#fdc830", "divider": "#fed7aa"
+      },
+      "shadow": { "r": 60, "g": 30, "b": 10, "a": 30 },
+      "ui_radius": 12, "qr_radius": 12
+    },
+    "forest-canopy": {
+      "name": "Forest Canopy",
+      "category": "theme-factory",
+      "mood": "Natural grounded earth tones",
+      "dark": true,
+      "colors": {
+        "canvas_bg": "#1b4332", "card_bg": "#2d6a4f",
+        "text_primary": "#d8f3dc", "text_secondary": "#95d5b2",
+        "accent": "#95d5b2", "accent_alt": "#52b788", "divider": "#2d5a3d"
+      },
+      "shadow": { "r": 0, "g": 0, "b": 0, "a": 60 },
+      "ui_radius": 14, "qr_radius": 12
+    },
+    "modern-minimalist": {
+      "name": "Modern Minimalist",
+      "category": "theme-factory",
+      "mood": "Clean contemporary grayscale",
+      "dark": false,
+      "colors": {
+        "canvas_bg": "#f5f5f5", "card_bg": "#ffffff",
+        "text_primary": "#1a1a1a", "text_secondary": "#6c6c6c",
+        "accent": "#333333", "accent_alt": "#999999", "divider": "#d0d0d0"
+      },
+      "shadow": { "r": 0, "g": 0, "b": 0, "a": 30 },
+      "ui_radius": 8, "qr_radius": 14
+    },
+    "golden-hour": {
+      "name": "Golden Hour",
+      "category": "theme-factory",
+      "mood": "Rich warm autumnal",
+      "dark": true,
+      "colors": {
+        "canvas_bg": "#5c3d2e", "card_bg": "#8b5e3c",
+        "text_primary": "#fff8dc", "text_secondary": "#d4a017",
+        "accent": "#f4c430", "accent_alt": "#d4a017", "divider": "#6b4c2e"
+      },
+      "shadow": { "r": 0, "g": 0, "b": 0, "a": 70 },
+      "ui_radius": 12, "qr_radius": 12
+    },
+    "arctic-frost": {
+      "name": "Arctic Frost",
+      "category": "theme-factory",
+      "mood": "Cool crisp winter",
+      "dark": false,
+      "colors": {
+        "canvas_bg": "#e8f4f8", "card_bg": "#ffffff",
+        "text_primary": "#1c3d5a", "text_secondary": "#4682b4",
+        "accent": "#4682b4", "accent_alt": "#b0e0e6", "divider": "#c0d8e8"
+      },
+      "shadow": { "r": 28, "g": 61, "b": 90, "a": 25 },
+      "ui_radius": 12, "qr_radius": 14
+    },
+    "desert-rose": {
+      "name": "Desert Rose",
+      "category": "theme-factory",
+      "mood": "Soft sophisticated dusty",
+      "dark": false,
+      "colors": {
+        "canvas_bg": "#f5e6e6", "card_bg": "#fff5f5",
+        "text_primary": "#5a3e3e", "text_secondary": "#8b6f6f",
+        "accent": "#c9a0a0", "accent_alt": "#8b6f6f", "divider": "#dccaca"
+      },
+      "shadow": { "r": 90, "g": 62, "b": 62, "a": 25 },
+      "ui_radius": 14, "qr_radius": 14
+    },
+    "botanical-garden": {
+      "name": "Botanical Garden",
+      "category": "theme-factory",
+      "mood": "Fresh organic garden",
+      "dark": false,
+      "colors": {
+        "canvas_bg": "#f0fff0", "card_bg": "#ffffff",
+        "text_primary": "#2d4a2d", "text_secondary": "#4a7c4a",
+        "accent": "#4a7c4a", "accent_alt": "#8fbc8f", "divider": "#c0dcc0"
+      },
+      "shadow": { "r": 45, "g": 74, "b": 45, "a": 25 },
+      "ui_radius": 14, "qr_radius": 14
+    }
+  }
+}

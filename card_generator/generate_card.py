@@ -10,28 +10,28 @@ is placed with painstaking attention to spacing, balance,
 and visual rhythm. The result should feel like a curated
 artifact — not a utility layout.
 
-Dual rendering engines:
-  - HTML/CSS + browser headless (primary, high fidelity)
-  - Pillow/PIL card-in-canvas (fallback, no browser required)
+Architecture:  skill  ->  tool call  ->  page generation
+  - This file is the "tool call" layer (invoked by SKILL.md)
+  - Themes are loaded from the shared ../themes.json (single
+    source of truth, shared with the Node.js satori renderer)
+  - Output images are the "page generation" layer
 
-14 design themes:
-  - 4 canvas-design philosophies (minimal, tech, organic, bold)
-  - 10 theme-factory palettes (tech-innovation, midnight-galaxy, ...)
-
-3 output formats:
-  - landscape  1200x630   (OG image / link preview)
-  - social     800x1280   (portrait, WeChat / social sharing)
-  - square     1080x1080  (1:1, Instagram feed)
+Renderers (all selectable via --renderer):
+  - auto   : browser headless -> Pillow fallback
+  - html   : force HTML/CSS + browser headless (high fidelity)
+  - pillow : force Pillow/PIL card-in-canvas (no browser needed)
+  - satori : delegate to Node.js satori-card/generate.js (subprocess)
 
 Usage:
     python generate_card.py --url https://example.com --name "My Model" --image ui.png
     python generate_card.py --url https://example.com --name "My Model" --image ui.png --theme tech-innovation --format social
-    python generate_card.py --url https://example.com --name "My Model" --image ui.png --renderer pillow
+    python generate_card.py --url https://example.com --name "My Model" --image ui.png --renderer satori
 """
 
 import argparse
 import base64
 import io
+import json
 import os
 import shutil
 import subprocess
@@ -39,209 +39,54 @@ import sys
 import tempfile
 
 import qrcode
-from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageColor
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 # ================================================================
-#  DESIGN THEMES
-#  4 canvas-design philosophies + 10 theme-factory palettes
+#  SHARED THEME LOADER  (single source of truth: themes.json)
 # ================================================================
 
-THEMES = {
-    # ---- canvas-design philosophies (original 4) ----
-    "minimal": {
-        "name": "Geometric Silence",
-        "canvas_bg": (242, 241, 238),
-        "card_bg": (255, 255, 255),
-        "text_primary": (20, 20, 19),
-        "text_secondary": (130, 125, 115),
-        "accent": (140, 156, 118),
-        "accent_alt": (176, 174, 165),
-        "divider": (232, 230, 220),
-        "shadow_color": (0, 0, 0, 40),
-        "ui_radius": 16, "qr_radius": 14,
-        "dark": False,
-    },
-    "tech": {
-        "name": "Chromatic Systems",
-        "canvas_bg": (10, 12, 20),
-        "card_bg": (20, 24, 35),
-        "text_primary": (235, 240, 248),
-        "text_secondary": (120, 130, 150),
-        "accent": (88, 166, 255),
-        "accent_alt": (63, 185, 80),
-        "divider": (40, 46, 58),
-        "shadow_color": (0, 0, 0, 80),
-        "ui_radius": 12, "qr_radius": 12,
-        "dark": True,
-    },
-    "organic": {
-        "name": "Natural Clustering",
-        "canvas_bg": (242, 236, 225),
-        "card_bg": (255, 252, 245),
-        "text_primary": (50, 40, 30),
-        "text_secondary": (140, 115, 90),
-        "accent": (217, 119, 87),
-        "accent_alt": (120, 140, 93),
-        "divider": (230, 220, 205),
-        "shadow_color": (60, 40, 20, 30),
-        "ui_radius": 20, "qr_radius": 16,
-        "dark": False,
-    },
-    "bold": {
-        "name": "Concrete Poetry",
-        "canvas_bg": (14, 14, 14),
-        "card_bg": (24, 24, 24),
-        "text_primary": (252, 250, 245),
-        "text_secondary": (180, 175, 165),
-        "accent": (230, 125, 80),
-        "accent_alt": (106, 155, 204),
-        "divider": (50, 48, 45),
-        "shadow_color": (0, 0, 0, 100),
-        "ui_radius": 8, "qr_radius": 8,
-        "dark": True,
-    },
-    # ---- theme-factory palettes (10) ----
-    "tech-innovation": {
-        "name": "Tech Innovation",
-        "canvas_bg": (10, 17, 23),
-        "card_bg": (20, 30, 40),
-        "text_primary": (255, 255, 255),
-        "text_secondary": (139, 148, 158),
-        "accent": (0, 102, 255),
-        "accent_alt": (0, 255, 255),
-        "divider": (48, 52, 61),
-        "shadow_color": (0, 0, 0, 80),
-        "ui_radius": 12, "qr_radius": 12,
-        "dark": True,
-    },
-    "midnight-galaxy": {
-        "name": "Midnight Galaxy",
-        "canvas_bg": (26, 15, 46),
-        "card_bg": (43, 30, 62),
-        "text_primary": (230, 230, 250),
-        "text_secondary": (164, 144, 194),
-        "accent": (74, 78, 143),
-        "accent_alt": (164, 144, 194),
-        "divider": (61, 47, 92),
-        "shadow_color": (0, 0, 0, 80),
-        "ui_radius": 10, "qr_radius": 12,
-        "dark": True,
-    },
-    "ocean-depths": {
-        "name": "Ocean Depths",
-        "canvas_bg": (13, 27, 42),
-        "card_bg": (27, 73, 101),
-        "text_primary": (202, 233, 255),
-        "text_secondary": (95, 168, 211),
-        "accent": (95, 168, 211),
-        "accent_alt": (27, 73, 101),
-        "divider": (27, 58, 92),
-        "shadow_color": (0, 0, 0, 60),
-        "ui_radius": 10, "qr_radius": 12,
-        "dark": True,
-    },
-    "sunset-boulevard": {
-        "name": "Sunset Boulevard",
-        "canvas_bg": (255, 245, 230),
-        "card_bg": (255, 250, 240),
-        "text_primary": (92, 46, 14),
-        "text_secondary": (194, 65, 12),
-        "accent": (255, 107, 53),
-        "accent_alt": (253, 200, 48),
-        "divider": (254, 215, 170),
-        "shadow_color": (60, 30, 10, 30),
-        "ui_radius": 12, "qr_radius": 12,
-        "dark": False,
-    },
-    "forest-canopy": {
-        "name": "Forest Canopy",
-        "canvas_bg": (27, 67, 50),
-        "card_bg": (45, 106, 79),
-        "text_primary": (216, 243, 220),
-        "text_secondary": (149, 213, 178),
-        "accent": (149, 213, 178),
-        "accent_alt": (82, 183, 136),
-        "divider": (45, 90, 61),
-        "shadow_color": (0, 0, 0, 60),
-        "ui_radius": 14, "qr_radius": 12,
-        "dark": True,
-    },
-    "modern-minimalist": {
-        "name": "Modern Minimalist",
-        "canvas_bg": (245, 245, 245),
-        "card_bg": (255, 255, 255),
-        "text_primary": (26, 26, 26),
-        "text_secondary": (108, 108, 108),
-        "accent": (51, 51, 51),
-        "accent_alt": (153, 153, 153),
-        "divider": (208, 208, 208),
-        "shadow_color": (0, 0, 0, 30),
-        "ui_radius": 8, "qr_radius": 14,
-        "dark": False,
-    },
-    "golden-hour": {
-        "name": "Golden Hour",
-        "canvas_bg": (92, 61, 46),
-        "card_bg": (139, 94, 60),
-        "text_primary": (255, 248, 220),
-        "text_secondary": (212, 160, 23),
-        "accent": (244, 196, 48),
-        "accent_alt": (212, 160, 23),
-        "divider": (107, 76, 46),
-        "shadow_color": (0, 0, 0, 70),
-        "ui_radius": 12, "qr_radius": 12,
-        "dark": True,
-    },
-    "arctic-frost": {
-        "name": "Arctic Frost",
-        "canvas_bg": (232, 244, 248),
-        "card_bg": (255, 255, 255),
-        "text_primary": (28, 61, 90),
-        "text_secondary": (70, 130, 180),
-        "accent": (70, 130, 180),
-        "accent_alt": (176, 224, 230),
-        "divider": (192, 216, 232),
-        "shadow_color": (28, 61, 90, 25),
-        "ui_radius": 12, "qr_radius": 14,
-        "dark": False,
-    },
-    "desert-rose": {
-        "name": "Desert Rose",
-        "canvas_bg": (245, 230, 230),
-        "card_bg": (255, 245, 245),
-        "text_primary": (90, 62, 62),
-        "text_secondary": (139, 111, 111),
-        "accent": (201, 160, 160),
-        "accent_alt": (139, 111, 111),
-        "divider": (220, 202, 202),
-        "shadow_color": (90, 62, 62, 25),
-        "ui_radius": 14, "qr_radius": 14,
-        "dark": False,
-    },
-    "botanical-garden": {
-        "name": "Botanical Garden",
-        "canvas_bg": (240, 255, 240),
-        "card_bg": (255, 255, 255),
-        "text_primary": (45, 74, 45),
-        "text_secondary": (74, 124, 74),
-        "accent": (74, 124, 74),
-        "accent_alt": (143, 188, 143),
-        "divider": (192, 220, 192),
-        "shadow_color": (45, 74, 45, 25),
-        "ui_radius": 14, "qr_radius": 14,
-        "dark": False,
-    },
-}
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_THEMES_FILE = os.path.normpath(os.path.join(_HERE, "..", "themes.json"))
+
+
+def _hex_to_rgb(s):
+    s = s.lstrip("#")
+    return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _load_themes():
+    """Load themes from the shared themes.json and normalize to RGB tuples."""
+    with open(_THEMES_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    formats = data["formats"]
+    themes = {}
+    for key, t in data["themes"].items():
+        c = t["colors"]
+        sh = t["shadow"]
+        themes[key] = {
+            "name": t["name"],
+            "category": t.get("category", ""),
+            "mood": t.get("mood", ""),
+            "canvas_bg": _hex_to_rgb(c["canvas_bg"]),
+            "card_bg": _hex_to_rgb(c["card_bg"]),
+            "text_primary": _hex_to_rgb(c["text_primary"]),
+            "text_secondary": _hex_to_rgb(c["text_secondary"]),
+            "accent": _hex_to_rgb(c["accent"]),
+            "accent_alt": _hex_to_rgb(c["accent_alt"]),
+            "divider": _hex_to_rgb(c["divider"]),
+            "shadow_color": (sh["r"], sh["g"], sh["b"], sh["a"]),
+            "ui_radius": t["ui_radius"],
+            "qr_radius": t["qr_radius"],
+            "dark": t["dark"],
+        }
+    return formats, themes
+
+
+FORMATS, THEMES = _load_themes()
 
 # ================================================================
-#  FORMAT PRESETS
+#  LAYOUT CONSTANTS
 # ================================================================
-
-FORMATS = {
-    "landscape": {"w": 1200, "h": 630},
-    "social": {"w": 800, "h": 1280},
-    "square": {"w": 1080, "h": 1080},
-}
 
 CARD_MARGIN = 28
 CARD_RADIUS = 20
@@ -252,11 +97,6 @@ SHADOW_OFFSET = (4, 8)
 # ================================================================
 #  COLOR / ASSET UTILITIES
 # ================================================================
-
-
-def _hex_to_rgb(s):
-    s = s.lstrip("#")
-    return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
 
 
 def _rgb_to_hex(rgb):
@@ -453,7 +293,7 @@ body {{
   <div class="corner bl"></div><div class="corner br"></div>
   <div class="header">
     <div class="logo-wrap"><img src="data:image/png;base64,{logo_b64}" alt="logo"></div>
-    <div><div class="brand">OPE.AI</div><div class="brand-sub">AI MODEL PLATFORM</div></div>
+    <div><div class="brand">OPEAI</div><div class="brand-sub">AI MODEL PLATFORM</div></div>
   </div>
   <div class="hero">
     <div class="tag"><span class="tag-dot"></span>NEW MODEL RELEASED</div>
@@ -493,6 +333,40 @@ def _render_html(browser_path, html_str, output_path, width, height):
         return os.path.exists(output_path)
     finally:
         os.unlink(html_path)
+
+
+# ================================================================
+#  SATORI RENDERER (delegates to Node.js satori-card/generate.js)
+# ================================================================
+
+_SATORI_SCRIPT = os.path.normpath(os.path.join(_HERE, "..", "satori-card", "generate.js"))
+
+
+def _render_satori(url, name, image_path, output_path, theme, fmt_name, subtitle, accent_hex):
+    """Invoke the Node.js satori renderer as a subprocess. Returns True on success."""
+    if not shutil.which("node"):
+        print("[WARN] Node.js not found on PATH; cannot use satori renderer.")
+        return False
+    if not os.path.exists(_SATORI_SCRIPT):
+        print(f"[WARN] Satori script not found: {_SATORI_SCRIPT}")
+        return False
+
+    cmd = ["node", _SATORI_SCRIPT,
+           "--url", url, "--name", name, "--image", image_path,
+           "--theme", theme, "--type", fmt_name, "--output", output_path]
+    if subtitle:
+        cmd += ["--subtitle", subtitle]
+    if accent_hex:
+        cmd += ["--accent", accent_hex]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        if result.returncode != 0:
+            print(f"[WARN] Satori failed: {result.stderr.strip()}")
+            return False
+        return os.path.exists(output_path)
+    except subprocess.TimeoutExpired:
+        print("[WARN] Satori renderer timed out.")
+        return False
 
 
 # ================================================================
@@ -733,6 +607,20 @@ def generate_card(url, name, image_path, output_path="card.png",
         print(f"[ERROR] Image not found: {image_path}")
         sys.exit(1)
 
+    # --- satori: delegate to Node.js (no fallback chain) ---
+    if renderer == "satori":
+        ok = _render_satori(url, name, image_path, output_path, theme, fmt_name, subtitle, accent_hex)
+        if ok:
+            print(f"[OK] Card saved -> {output_path}  "
+                  f"(theme: {t['name']}, format: {fmt_name}, renderer: satori)")
+            return
+        print("[WARN] Satori renderer failed, falling back to Pillow...")
+        _render_pillow(url, name, image_path, output_path, t, fmt, subtitle, accent_hex)
+        print(f"[OK] Card saved -> {output_path}  "
+              f"(theme: {t['name']}, format: {fmt_name}, renderer: pillow)")
+        return
+
+    # --- auto / html / pillow ---
     use_html = renderer in ("html", "auto")
     browser = find_browser() if use_html else None
 
@@ -766,13 +654,13 @@ def main():
 Examples:
   python generate_card.py --url https://example.com --name "Awesome Model" --image ui.png
   python generate_card.py --url https://example.com --name "Model" --image ui.png --theme tech-innovation --format social
-  python generate_card.py --url https://example.com --name "Model" --image ui.png --renderer pillow
+  python generate_card.py --url https://example.com --name "Model" --image ui.png --renderer satori
   python generate_card.py --url https://example.com --name "Model" --image ui.png --theme midnight-galaxy --subtitle "Now Available" --accent "#ff6b6b"
 
 Available themes: """ + ", ".join(THEMES.keys()) + """
 
 Available formats: landscape (1200x630), social (800x1280), square (1080x1080)
-Available renderers: auto (default), html, pillow
+Available renderers: auto (default), html, pillow, satori
         """,
     )
     parser.add_argument("--url", required=True, help="Target URL (QR code destination)")
@@ -784,7 +672,7 @@ Available renderers: auto (default), html, pillow
     parser.add_argument("--accent", default=None, help="Override accent color (hex)")
     parser.add_argument("--format", choices=list(FORMATS.keys()), default="landscape",
                         help="Output format (default: landscape)")
-    parser.add_argument("--renderer", choices=["auto", "html", "pillow"], default="auto",
+    parser.add_argument("--renderer", choices=["auto", "html", "pillow", "satori"], default="auto",
                         help="Rendering engine (default: auto)")
 
     args = parser.parse_args()

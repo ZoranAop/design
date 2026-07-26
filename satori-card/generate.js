@@ -251,30 +251,22 @@ function socialCard({ name, subtitle, displayUrl, qrDataURI, feature1, feature2,
               // bottom spacer — balances vertical whitespace
               { type: "div", props: { style: { display: "flex", flex: 1 } } },
 
-              // --- Footer: QR + CTA/URL ---
-              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginBottom: "26px" } } },
+              // --- Footer: centered QR + CTA/URL (X / editorial style) ---
+              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginBottom: "34px" } } },
               {
                 type: "div",
                 props: {
-                  style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%" },
+                  style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" },
                   children: [
                     {
                       type: "div",
                       props: {
-                        style: { display: "flex", alignItems: "center", justifyContent: "center", width: "124px", height: "124px", background: "#ffffff", borderRadius: "16px", overflow: "hidden", padding: "8px", boxSizing: "border-box", flexShrink: 0, marginRight: "24px" },
+                        style: { display: "flex", alignItems: "center", justifyContent: "center", width: "200px", height: "200px", background: "#ffffff", borderRadius: "22px", overflow: "hidden", padding: "12px", boxSizing: "border-box", flexShrink: 0, border: `1px solid ${t.divider}` },
                         children: [{ type: "img", props: { src: qrDataURI, style: { width: "100%", height: "100%" } } }],
                       },
                     },
-                    {
-                      type: "div",
-                      props: {
-                        style: { display: "flex", flexDirection: "column", flex: 1 },
-                        children: [
-                          { type: "div", props: { style: { fontSize: "12px", fontWeight: 700, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2px", marginBottom: "10px" }, children: L.scanHint } },
-                          { type: "div", props: { style: { fontSize: "17px", fontWeight: 600, color: t.accent, fontFamily: FF }, children: displayUrl } },
-                        ],
-                      },
-                    },
+                    { type: "div", props: { style: { fontSize: "13px", fontWeight: 700, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2.5px", marginTop: "22px" }, children: L.scanHint } },
+                    { type: "div", props: { style: { fontSize: "19px", fontWeight: 600, color: t.accent, fontFamily: FF, marginTop: "8px" }, children: displayUrl } },
                   ],
                 },
               },
@@ -307,7 +299,7 @@ function multiCard({ name, subtitle, displayUrl, qrDataURI, models }) {
     props: {
       style: {
         display: "flex", flexDirection: "row", alignItems: "center", width: "100%",
-        padding: "20px 22px", marginBottom: i < list.length - 1 ? `${rowGap}px` : "0",
+        padding: "22px 24px", marginBottom: i < list.length - 1 ? `${rowGap}px` : "0",
         background: isDark ? "rgba(255,255,255,0.04)" : "rgba(15,17,21,0.03)",
         border: `1px solid ${t.divider}`, borderRadius: "18px", boxSizing: "border-box",
       },
@@ -385,7 +377,7 @@ function multiCard({ name, subtitle, displayUrl, qrDataURI, models }) {
               { type: "div", props: { style: { display: "flex", flex: 1, minHeight: "20px" } } },
 
               // --- Footer: centered QR + CTA (X / editorial style) ---
-              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginBottom: "28px" } } },
+              { type: "div", props: { style: { width: "100%", height: "1px", background: t.divider, marginBottom: "30px" } } },
               {
                 type: "div",
                 props: {
@@ -395,14 +387,14 @@ function multiCard({ name, subtitle, displayUrl, qrDataURI, models }) {
                     {
                       type: "div",
                       props: {
-                        style: { display: "flex", alignItems: "center", justifyContent: "center", width: "168px", height: "168px", background: "#ffffff", borderRadius: "20px", overflow: "hidden", padding: "10px", boxSizing: "border-box", flexShrink: 0, border: `1px solid ${t.divider}` },
+                        style: { display: "flex", alignItems: "center", justifyContent: "center", width: "188px", height: "188px", background: "#ffffff", borderRadius: "22px", overflow: "hidden", padding: "12px", boxSizing: "border-box", flexShrink: 0, border: `1px solid ${t.divider}` },
                         children: [{ type: "img", props: { src: qrDataURI, style: { width: "100%", height: "100%" } } }],
                       },
                     },
                     // scan hint
-                    { type: "div", props: { style: { fontSize: "12px", fontWeight: 700, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2.5px", marginTop: "18px" }, children: L.scanHint } },
+                    { type: "div", props: { style: { fontSize: "13px", fontWeight: 700, color: t.textSec, fontFamily: FF, textTransform: "uppercase", letterSpacing: "2.5px", marginTop: "20px" }, children: L.scanHint } },
                     // url
-                    { type: "div", props: { style: { fontSize: "18px", fontWeight: 600, color: t.accent, fontFamily: FF, marginTop: "6px" }, children: displayUrl } },
+                    { type: "div", props: { style: { fontSize: "19px", fontWeight: 600, color: t.accent, fontFamily: FF, marginTop: "8px" }, children: displayUrl } },
                   ],
                 },
               },

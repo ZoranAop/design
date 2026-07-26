@@ -25,7 +25,7 @@ pip install -r card_generator/requirements.txt
 python card_generator/generate_card.py --url https://example.com --name "My Model" --image ui.png
 ```
 
-Add `--brand`, `--platform`, `--lang en|zh`, `--theme`, `--format`, or `--accent` to customize. See the docs below.
+Add `--brand`, `--platform`, `--lang en|zh|zh-Hant|ja`, `--theme`, `--format`, or `--accent` to customize. See the docs below.
 
 ## Documentation
 

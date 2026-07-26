@@ -1,6 +1,6 @@
 ---
 name: digital-business-card
-description: Generate a clean, international-style digital business card with an embedded QR code from a URL. Use when the user wants to create a shareable card image that links to a website, model page, or product page. Produces landscape / social / social-multi / square PNG cards with 16 design themes (including X / Twitter dark and light Western-editorial styles), optional brand/platform labels, a reusable multi-model template, and en/zh copy. Can query canvas-design, brand-guidelines, and theme-factory skills for design optimization.
+description: Generate a clean, international-style digital business card with an embedded QR code from a URL. Use when the user wants to create a shareable card image that links to a website, model page, or product page. Produces landscape / social / social-multi / square PNG cards with 16 design themes (including X / Twitter dark and light Western-editorial styles), optional brand/platform labels, a reusable multi-model template, and en / zh / zh-Hant / ja copy. Can query canvas-design, brand-guidelines, and theme-factory skills for design optimization.
 ---
 
 # Digital Business Card Skill
@@ -9,13 +9,16 @@ description: Generate a clean, international-style digital business card with an
 
 Parses a **URL** → generates a **QR code** → composes it onto a polished **digital business card** → outputs a **PNG image** ready for sharing.
 
-The card surfaces a model/product name, an optional subtitle, a reference logo/screenshot, and a scannable QR code that opens the target URL. Three output formats cover the common share surfaces:
+The card surfaces a model/product name, an optional subtitle, a reference logo/screenshot, and a scannable QR code that opens the target URL. The portrait **social** and **social-multi** formats are the primary share surfaces; landscape and square are also available:
 
-| Format    | Dimensions    | Use case                          |
-|-----------|---------------|-----------------------------------|
-| landscape | 1200×630      | OG image / link preview           |
-| social    | 800×1280      | WeChat Moments / social sharing   |
-| square    | 1080×1080     | Instagram feed (1:1)              |
+| Format       | Dimensions    | Use case                          |
+|--------------|---------------|-----------------------------------|
+| landscape    | 1200×630      | OG image / link preview           |
+| social       | 800×1280      | WeChat Moments / social sharing   |
+| social-multi | 800×1280      | Multi-model launch (satori-only)  |
+| square       | 1080×1080     | Instagram feed (1:1)              |
+
+Every format supports all four languages (`--lang en | zh | zh-Hant | ja`).
 
 ## Architecture: skill → tool call → page generation
 

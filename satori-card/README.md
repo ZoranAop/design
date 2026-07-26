@@ -86,6 +86,9 @@ node generate.js --url https://platform.ope.ai/market --name "GPT-5.6" --image l
   Best paired with `--theme x-dark` (X style) or `--theme light-editorial` (Western editorial).
 - **square** (1080×1080) — centered: logo, name, QR + URL row
 
+All four layouts support every language (`--lang en | zh | zh-Hant | ja`) —
+the copy is pulled from one locale table so a card never mixes languages.
+
 ## Called as a subprocess
 
 This script is also invokable from the Python renderer:
